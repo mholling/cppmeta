@@ -162,10 +162,8 @@ namespace Meta {
     typedef typename  After<L, Int<(Length<L>::Result::value-1)/2>>::Result Right;
     typedef typename Merge<typename Sort<Left, LessThan>::Result, typename Sort<Right, LessThan>::Result>::Result Result;
   };
-  
   template <template <typename, typename> class LessThan>
   struct Sort<List<>, LessThan> { typedef List<> Result; };
-  
   template <typename Head, template <typename, typename> class LessThan>
   struct Sort<List<Head>, LessThan> { typedef List<Head> Result; };
   

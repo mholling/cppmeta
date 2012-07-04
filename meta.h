@@ -9,7 +9,9 @@ namespace Meta {
   template <char c> struct Char { static const char value = c; };
   
   template <typename Type1, typename Type2> struct Same { typedef Bool<false> Result; };
-  template <typename Type> struct Same<Type, Type> { typedef Bool<true> Result; }; 
+  template <typename Type> struct Same<Type, Type> { typedef Bool<true> Result; };
+  
+  template <typename Type> struct Self { typedef Type Result; };
   
   template <typename Type>
   struct CanEval {
