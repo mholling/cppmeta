@@ -1,12 +1,12 @@
 namespace Meta {
-  // template <typename Type, Type t> struct Value { static const Type value = t; };
-  // template <bool b> using Bool = Value<bool, b>;
-  // template <int  i> using Int  = Value<int,  i>;
-  // template <char c> using Char = Value<char, c>;
+  template <typename Type, Type t> struct Value { static const Type value = t; };
+  template <bool b> using Bool = Value<bool, b>;
+  template <int  i> using Int  = Value<int,  i>;
+  template <char c> using Char = Value<char, c>;
   
-  template <bool b> struct Bool { static const bool value = b; };
-  template <int  i> struct Int  { static const int  value = i; };
-  template <char c> struct Char { static const char value = c; };
+  // template <bool b> struct Bool { static const bool value = b; };
+  // template <int  i> struct Int  { static const int  value = i; };
+  // template <char c> struct Char { static const char value = c; };
   
   template <typename Type1, typename Type2> struct Same { typedef Bool<false> Result; };
   template <typename Type> struct Same<Type, Type> { typedef Bool<true> Result; };

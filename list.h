@@ -1,5 +1,9 @@
 namespace Meta {
-  template <typename...> struct List;
+  template <typename...> struct List {};
+  
+  template <typename> struct Head;
+  template <typename Type, typename... Elements>
+  struct Head<List<Type, Elements...>> { typedef Type Result; };
   
   template <typename> struct IsList { typedef Bool<false> Result; };
   template <typename... Elements> struct IsList<List<Elements...>> { typedef Bool<true> Result; };
