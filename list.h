@@ -187,7 +187,7 @@ namespace Meta {
   template <typename Head, typename... Tail>
   struct While<List<Head, Tail...>> {
     template <typename... Args>
-    bool operator ()(Args... args) { return Head()(args...) && Each<List<Tail...>>()(args...); }
+    bool operator ()(Args... args) { return Head()(args...) && While<List<Tail...>>()(args...); }
   };
   template <>
   struct While<List<>> {
@@ -199,7 +199,7 @@ namespace Meta {
   template <typename Head, typename... Tail>
   struct Until<List<Head, Tail...>> {
     template <typename... Args>
-    bool operator ()(Args... args) { return Head()(args...) || Each<List<Tail...>>()(args...); }
+    bool operator ()(Args... args) { return Head()(args...) || Until<List<Tail...>>()(args...); }
   };
   template <>
   struct Until<List<>> {
