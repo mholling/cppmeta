@@ -4,9 +4,17 @@ namespace Meta {
   template <int  i> using Int  = Value<int,  i>;
   template <char c> using Char = Value<char, c>;
   
-  // template <bool b> struct Bool { static const bool value = b; };
-  // template <int  i> struct Int  { static const int  value = i; };
-  // template <char c> struct Char { static const char value = c; };
+  template <typename> struct Increment;
+  template <typename Type, Type t> struct Increment<Value<Type, t>> { typedef Value<Type, t+1> Result; };
+  template <typename> struct Decrement;
+  template <typename Type, Type t> struct Decrement<Value<Type, t>> { typedef Value<Type, t-1> Result; };
+  
+  template <typename, typename> struct LessThan;
+  template <typename Type, Type t1, Type t2>
+  struct LessThan<Value<Type, t1>, Value<Type, t2>> { typedef Bool<(t1 < t2)> Result; };
+  template <typename, typename> struct GreaterThan;
+  template <typename Type, Type t1, Type t2>
+  struct GreaterThan<Value<Type, t1>, Value<Type, t2>> { typedef Bool<(t1 > t2)> Result; };
   
   template <typename Type1, typename Type2> struct Same { typedef Bool<false> Result; };
   template <typename Type> struct Same<Type, Type> { typedef Bool<true> Result; };

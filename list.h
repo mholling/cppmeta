@@ -30,39 +30,31 @@ namespace Meta {
   
   template <typename L>
   struct Length {
-    template <typename Type, typename Memo> struct Counter;
-    template <typename Type, int index> struct Counter<Type, Int<index>> { typedef Int<index+1> Result; };
+    template <typename Type, typename Memo> using Counter = Increment<Memo>;
     typedef typename Inject<L, Int<0>, Counter>::Result Result;
   };
   
   template <typename L, template <typename> class Function>
   struct Map {
-    template <typename Type, typename Memo>
-    struct Mapper { typedef typename Append<Memo, typename Function<Type>::Result>::Result Result; };
+    template <typename Type, typename Memo> using Mapper = Append<Memo, typename Function<Type>::Result>;
     typedef typename Inject<L, List<>, Mapper>::Result Result;
   };
   
   template <typename L, template <typename, typename> class Function>
   struct MapWithIndex {
-    template <typename Type, typename Memo>
-    struct Mapper {
-      typedef typename Length<Memo>::Result Index;
-      typedef typename Append<Memo, typename Function<Type, Index>::Result>::Result Result;
-    };
+    template <typename Type, typename Memo> using Mapper = Append<Memo, typename Function<Type, typename Length<Memo>::Result>::Result>;
     typedef typename Inject<L, List<>, Mapper>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate>
   struct Select {
-    template <typename Type, typename Memo>
-    struct Selector { typedef typename If<typename Predicate<Type>::Result, Append<Memo, Type>, Memo>::Result Result; };
+    template <typename Type, typename Memo> using Selector = If<typename Predicate<Type>::Result, Append<Memo, Type>, Memo>;
     typedef typename Inject<L, List<>, Selector>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate>
   struct Reject {
-    template <typename Type, typename Memo>
-    struct Rejector { typedef typename If<typename Predicate<Type>::Result, Memo, Append<Memo, Type>>::Result Result; };
+    template <typename Type, typename Memo> using Rejector = If<typename Predicate<Type>::Result, Memo, Append<Memo, Type>>;
     typedef typename Inject<L, List<>, Rejector>::Result Result;
   };
   
@@ -83,21 +75,20 @@ namespace Meta {
   template <typename L, typename Type> struct Contains;
   template <typename... Tail, typename Head, typename Type>
   struct Contains<List<Head, Tail...>, Type> { typedef typename Contains<List<Tail...>, Type>::Result Result; };
-  template <typename... Tail, typename Type>
+  template <typename Type, typename... Tail>
   struct Contains<List<Type, Tail...>, Type> { typedef Bool<true> Result; };
   template <typename Type>
   struct Contains<List<>, Type> { typedef Bool<false> Result; };
   
   template <typename L>
   struct Unique {
-    template <typename Type, typename Memo>
-    struct Check { typedef typename If<typename Contains<Memo, Type>::Result, Memo, Append<Memo, Type>>::Result Result; };
+    template <typename Type, typename Memo> using Check = If<typename Contains<Memo, Type>::Result, Memo, Append<Memo, Type>>;
     typedef typename Inject<L, List<>, Check>::Result Result;
   };
   
   template <typename L, typename Type> struct Index;
   template <typename Head, typename... Tail, typename Type>
-  struct Index<List<Head, Tail...>, Type> { typedef Int<1+Index<List<Tail...>, Type>::Result::value> Result; };
+  struct Index<List<Head, Tail...>, Type> { typedef typename Increment<typename Index<List<Tail...>, Type>::Result>::Result Result; };
   template <typename... Tail, typename Type>
   struct Index<List<Type, Tail...>, Type> { typedef Int<0> Result; };
   
@@ -109,45 +100,37 @@ namespace Meta {
   template <typename Head> struct Last<List<Head>> { typedef Head Result; };
   
   template <typename L, typename Index> struct At;
-  template <typename Head, typename... Tail, int index>
-  struct At<List<Head, Tail...>, Int<index>> { typedef typename At<List<Tail...>, Int<index-1>>::Result Result; };
+  template <typename Head, typename... Tail, typename Index>
+  struct At<List<Head, Tail...>, Index> { typedef typename At<List<Tail...>, typename Decrement<Index>::Result>::Result Result; };
   template <typename Head, typename... Tail>
   struct At<List<Head, Tail...>, Int<0>> { typedef Head Result; };
   
-  template <typename L>
-  struct Flatten {
-    template <typename Type, typename Memo>
-    struct Squish {
-      typedef typename IsList<Type>::Result TypeIsList;
-      typedef typename If<TypeIsList, Flatten<Type>, Type>::Result FlattenedType;
-      typedef typename If<TypeIsList, Concat<Memo, FlattenedType>, Append<Memo, FlattenedType>>::Result Result;
-    };
-    typedef typename Inject<L, List<>, Squish>::Result Result;
+  template <typename> struct Flatten;
+  template <typename Head, typename... Tail>
+  struct Flatten<List<Head, Tail...>> {
+    typedef typename Prepend<Head, typename Flatten<List<Tail...>>::Result>::Result Result;
   };
+  template <typename Head, typename... Tail1, typename... Tail2>
+  struct Flatten<List<List<Head, Tail1...>, Tail2...>> {
+    typedef typename Concat<typename Flatten<List<Head, Tail1...>>::Result, typename Flatten<List<Tail2...>>::Result>::Result Result;
+  };
+  template <> struct Flatten<List<>> { typedef List<> Result; };
   
   template <typename L, typename IndexOrElement> struct Before;
-  template <typename Head, typename... Tail, int index>
-  struct Before<List<Head, Tail...>, Int<index>> { typedef typename Prepend<Head, typename Before<List<Tail...>, Int<index-1>>::Result>::Result Result; };
+  template <typename Index, typename Head, typename... Tail>
+  struct Before<List<Head, Tail...>, Index> { typedef typename Prepend<Head, typename Before<List<Tail...>, typename Decrement<Index>::Result>::Result>::Result Result; };
   template <typename Head, typename... Tail>
   struct Before<List<Head, Tail...>, Int<0>> { typedef List<> Result; };
   template <>
   struct Before<List<>, Int<0>> { typedef List<> Result; };
-  template <typename Head, typename... Tail, typename Type>
-  struct Before<List<Head, Tail...>, Type> { typedef typename Prepend<Head, typename Before<List<Tail...>, Type>::Result>::Result Result; };
-  template <typename... Tail, typename Type>
-  struct Before<List<Type, Tail...>, Type> { typedef List<> Result; };
   
   template <typename L, typename Index> struct After;
-  template <typename Head, typename... Tail, int index>
-  struct After<List<Head, Tail...>, Int<index>> { typedef typename After<List<Tail...>, Int<index-1>>::Result Result; };
+  template <typename Head, typename... Tail, typename Index>
+  struct After<List<Head, Tail...>, Index> { typedef typename After<List<Tail...>, typename Decrement<Index>::Result>::Result Result; };
   template <typename Head, typename... Tail>
   struct After<List<Head, Tail...>, Int<-1>> { typedef List<Head, Tail...> Result; };
   template <>
   struct After<List<>, Int<-1>> { typedef List<> Result; };
-  template <typename Head, typename... Tail, typename Type>
-  struct After<List<Head, Tail...>, Type> { typedef typename After<List<Tail...>, Type>::Result Result; };
-  template <typename... Tail, typename Type>
-  struct After<List<Type, Tail...>, Type> { typedef List<Tail...> Result; };
   
   template <typename L, template <typename, typename> class LessThan>
   struct Sort {

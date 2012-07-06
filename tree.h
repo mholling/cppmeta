@@ -76,13 +76,12 @@ namespace Meta {
   template <typename Type, typename... Branches>
   struct CommonBranch<Type, Type, Tree<Type, Branches...>> { typedef Tree<Type, Branches...> Result; };
   
-  template <typename Type1, typename Type2, typename Branch>
-  struct CommonNode { typedef typename Root<typename CommonBranch<Type1, Type2, Branch>::Result>::Result Result; };
+  template <typename Type1, typename Type2, typename Branch> using CommonNode = Root<typename CommonBranch<Type1, Type2, Branch>::Result>;
   
   template <typename> struct Flatten;
   template <typename Node, typename... Branches>
   struct Flatten<Tree<Node, Branches...>> {
-    typedef typename Prepend<Node, typename Flatten<typename Map<List<Branches...>, Flatten>::Result>::Result>::Result Result;
+    typedef typename Prepend<Node, typename Flatten<typename Map<List<Branches...>, Meta::Flatten>::Result>::Result>::Result Result;
   };
   
   template <typename, template <typename> class> struct Find;
