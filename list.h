@@ -1,9 +1,5 @@
 namespace Meta {
-  template <typename...> struct List {};
-  
-  template <typename> struct Head;
-  template <typename Type, typename... Elements>
-  struct Head<List<Type, Elements...>> { typedef Type Result; };
+  template <typename...> struct List;
   
   template <typename> struct IsList { typedef Bool<false> Result; };
   template <typename... Elements> struct IsList<List<Elements...>> { typedef Bool<true> Result; };
@@ -20,6 +16,7 @@ namespace Meta {
   template <typename... Elements1, typename... Elements2>
   struct Concat<List<Elements1...>, List<Elements2...>> { typedef List<Elements1..., Elements2...> Result; };
   
+  // TODO:  modify Inject to optionaly take no Memo and use first element as starting memo
   template <typename L, typename Memo, template <typename, typename> class Function> struct Inject;
   template <typename Head, typename... Tail, typename Memo, template <typename, typename> class Function>
   struct Inject<List<Head, Tail...>, Memo, Function> {
@@ -153,6 +150,9 @@ namespace Meta {
   struct Sort<List<>, LessThan> { typedef List<> Result; };
   template <typename Head, template <typename, typename> class LessThan>
   struct Sort<List<Head>, LessThan> { typedef List<Head> Result; };
+  
+  template <typename L> using Max = Inject<L, typename First<L>::Result, GreaterOf>;
+  template <typename L> using Min = Inject<L, typename First<L>::Result, LesserOf>;
   
   template <typename L> struct Each;
   template <typename Head, typename... Tail>

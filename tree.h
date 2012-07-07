@@ -36,22 +36,25 @@ namespace Meta {
     typedef typename Map<List<Branches...>, Root>::Result Result;
   };
   
-  template <typename, typename> struct Ancestors;
-  template <typename Type, typename Node, typename... Branches>
-  struct Ancestors<Type, Tree<Node, Branches...>> {
+  template <typename, typename, typename> struct Lineage;
+  template <typename Type, typename IncludeSelf, typename Node, typename... Branches>
+  struct Lineage<Type, Tree<Node, Branches...>, IncludeSelf> {
     static_assert(Contains<Tree<Node, Branches...>, Type>::Result::value, "tree does not contain specified type");
     template <typename Branch> using ContainsType = Contains<Branch, Type>;
     typedef typename Find<List<Branches...>, ContainsType>::Result ContainingBranch;
-    typedef typename Append<typename Ancestors<Type, ContainingBranch>::Result, Node>::Result Result;
+    typedef typename Append<typename Lineage<Type, ContainingBranch, IncludeSelf>::Result, Node>::Result Result;
   };
-  template <typename Type, typename... Branches>
-  struct Ancestors<Type, Tree<Type, Branches...>> { typedef List<> Result; };
+  template <typename Type, typename IncludeSelf, typename... Branches>
+  struct Lineage<Type, Tree<Type, Branches...>, IncludeSelf> { typedef typename If<IncludeSelf, List<Type>, List<>>::Result Result; };
+  
+  template <typename Type, typename Branch> using Ancestors = Lineage<Type, Branch, Bool<false>>;
+  template <typename Type, typename Branch> using SelfAndAncestors = Lineage<Type, Branch, Bool<true>>;
   
   template <typename Type, typename Branch>
   struct Parent {
     typedef typename Ancestors<Type, Branch>::Result AncestorList;
     static_assert(Any<AncestorList>::Result::value, "specified type is root of tree and has no parent");
-    typedef typename Head<AncestorList>::Result Result;
+    typedef typename First<AncestorList>::Result Result;
   };
   
   template <typename, typename, typename> struct CommonBranch;
@@ -76,7 +79,7 @@ namespace Meta {
   template <typename Type, typename... Branches>
   struct CommonBranch<Type, Type, Tree<Type, Branches...>> { typedef Tree<Type, Branches...> Result; };
   
-  template <typename Type1, typename Type2, typename Branch> using CommonNode = Root<typename CommonBranch<Type1, Type2, Branch>::Result>;
+  template <typename Type1, typename Type2, typename Branch> using CommonAncestor = Root<typename CommonBranch<Type1, Type2, Branch>::Result>;
   
   template <typename> struct Flatten;
   template <typename Node, typename... Branches>
@@ -89,4 +92,15 @@ namespace Meta {
   struct Find<Tree<Node, Branches...>, Predicate> {
     typedef typename Find<typename Flatten<Tree<Node, Branches...>>::Result, Predicate>::Result Result;
   };
+  
+  template <typename> struct Height;
+  template <typename Node, typename... Branches>
+  struct Height<Tree<Node, Branches...>> {
+    typedef typename Map<List<Branches...>, Meta::Height>::Result BranchHeights;
+    typedef typename Max<BranchHeights>::Result MaxBranchHeight;
+    typedef typename Increment<MaxBranchHeight>::Result Result; 
+  };
+  template <typename Node> struct Height<Tree<Node>> { typedef Int<0> Result; };
+  
+  // TODO: templates for traversing up & down a list
 }

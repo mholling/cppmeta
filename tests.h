@@ -28,6 +28,9 @@ namespace Meta {
 
       static_assert(Same<If<Bool<true>, int, char>::Result, int>::Result::value, "failed");
       static_assert(Same<If<Bool<false>, int, char>::Result, char>::Result::value, "failed");
+      
+      static_assert(Same<LesserOf<Int<4>, Int<5>>::Result, Int<4>>::Result::value, "failed");
+      static_assert(Same<GreaterOf<Int<4>, Int<5>>::Result, Int<5>>::Result::value, "failed");
 
       struct Parent { };
       struct Child : Parent { };
@@ -53,20 +56,19 @@ namespace Meta {
       static_assert(IsList<List<int, char>>::Result::value, "failed");
       static_assert(!IsList<int>::Result::value, "failed");
 
-      static_assert(Same<Head<List<int, char>>::Result, int>::Result::value, "failed");
-      static_assert(!Same<Head<List<int, char>>::Result, char>::Result::value, "failed");
-
       static_assert(Same<Append<List<char, int>, float>::Result, List<char, int, float>>::Result::value, "failed");
       static_assert(Same<Append<List<>, float>::Result, List<float>>::Result::value, "failed");
       static_assert(Same<Prepend<float, List<char, int>>::Result, List<float, char, int>>::Result::value, "failed");
       static_assert(Same<Prepend<float, List<>>::Result, List<float>>::Result::value, "failed");
       static_assert(Same<Concat<List<char, int>, List<float, bool>>::Result, List<char, int, float, bool>>::Result::value, "failed");
 
-      template <typename T> struct IsFloat { typedef typename Same<T, float>::Result Result; };
+      template <typename T> using IsFloat = Same<T, float>;
       static_assert(Same<Map<List<int, char, float, bool>, IsFloat>::Result, List<Bool<false>,Bool<false>,Bool<true>,Bool<false>>>::Result::value, "failed");
 
-      template <typename T, typename Index> struct IndexIsEven { typedef Bool<Index::value % 2 == 0> Result; };
-      static_assert(Same<MapWithIndex<List<int, int, int, int, int>, IndexIsEven>::Result, List<Bool<true>, Bool<false>, Bool<true>, Bool<false>, Bool<true>>>::Result::value, "failed");
+      template <typename T, typename Index> struct GetIndex { typedef Index Result; };
+      static_assert(Same<MapWithIndex<List<int, bool, char, long, float>, GetIndex>::Result, List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>>>::Result::value, "failed");
+      template <typename T, typename Index> struct GetElement { typedef T Result; };
+      static_assert(Same<MapWithIndex<List<int, bool, char, long, float>, GetElement>::Result, List<int, bool, char, long, float>>::Result::value, "failed");
 
       static_assert(Same<Select<List<int, char, float, bool, float>, IsFloat>::Result, List<float, float>>::Result::value, "failed");
       static_assert(Same<Reject<List<int, char, float, bool, float>, IsFloat>::Result, List<int, char, bool>>::Result::value, "failed");
@@ -102,9 +104,12 @@ namespace Meta {
       static_assert(Same<Before<List<int, char, bool, float>, Int<3>>::Result, List<int, char, bool>>::Result::value, "failed");
       static_assert(Same<After<List<int, char, bool, float>, Int<1>>::Result, List<bool, float>>::Result::value, "failed");
 
-      typedef List<Char<1>, Char<6>, Char<0>, Char<4>, Char<3>, Char<2>, Char<5>> Unsorted;
-      typedef List<Char<0>, Char<1>, Char<2>, Char<3>, Char<4>, Char<5>, Char<6>> Sorted;
+      typedef List<Int<1>, Int<6>, Int<0>, Int<4>, Int<3>, Int<2>, Int<5>> Unsorted;
+      typedef List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>, Int<5>, Int<6>> Sorted;
       static_assert(Same<Sort<Unsorted, LessThan>::Result, Sorted>::Result::value, "failed");
+      
+      static_assert(Same<Max<Unsorted>::Result, Int<6>>::Result::value, "failed");
+      static_assert(Same<Min<Unsorted>::Result, Int<0>>::Result::value, "failed");
     }
     namespace TestTrees {
       struct A; struct AA; struct AB; struct AC; struct AD; struct AAA; struct AAB; struct ABA; struct ABB; struct ABC; struct ADA; struct ADB; struct ADAA; struct ADAB;
@@ -145,6 +150,11 @@ namespace Meta {
       static_assert(Same<Ancestors<ABC, TreeA>::Result, List<AB, A>>::Result::value, "failed");
       static_assert(Same<Ancestors<ADAB, TreeA>::Result, List<ADA, AD, A>>::Result::value, "failed");
       
+      static_assert(Same<SelfAndAncestors<A, TreeA>::Result, List<A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<AB, TreeA>::Result, List<AB, A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<ABC, TreeA>::Result, List<ABC, AB, A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<ADAB, TreeA>::Result, List<ADAB, ADA, AD, A>>::Result::value, "failed");
+      
       static_assert(Same<Parent<AB, TreeA>::Result, A>::Result::value, "failed");
       static_assert(Same<Parent<ABB, TreeA>::Result, AB>::Result::value, "failed");
       static_assert(Same<Parent<ADAB, TreeA>::Result, ADA>::Result::value, "failed");
@@ -155,16 +165,20 @@ namespace Meta {
       static_assert(Same<CommonBranch<ADAA, AD, TreeA>::Result, TreeAD>::Result::value, "failed");
       static_assert(Same<CommonBranch<AD, AD, TreeA>::Result, TreeAD>::Result::value, "failed");
       
-      static_assert(Same<CommonNode<ADAB, AAB, TreeA>::Result, A>::Result::value, "failed");
-      static_assert(Same<CommonNode<ADAB, ADB, TreeA>::Result, AD>::Result::value, "failed");
-      static_assert(Same<CommonNode<ADAA, ADAB, TreeA>::Result, ADA>::Result::value, "failed");
-      static_assert(Same<CommonNode<ADAA, AD, TreeA>::Result, AD>::Result::value, "failed");
-      static_assert(Same<CommonNode<AD, AD, TreeA>::Result, AD>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<ADAB, AAB, TreeA>::Result, A>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<ADAB, ADB, TreeA>::Result, AD>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<ADAA, ADAB, TreeA>::Result, ADA>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<ADAA, AD, TreeA>::Result, AD>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<AD, AD, TreeA>::Result, AD>::Result::value, "failed");
       
       static_assert(Same<Flatten<TreeA>::Result, List<A, AA, AAA, AAB, AB, ABA, ABB, ABC, AC, AD, ADA, ADAA, ADAB, ADB>>::Result::value, "failed");
       
       template <typename Type> using IsADA = Same<ADA, Type>;
       static_assert(Same<Find<TreeA, IsADA>::Result, ADA>::Result::value, "failed");
+      
+      static_assert(Same<Height<TreeA>::Result, Int<3>>::Result::value, "failed");
+      static_assert(Same<Height<TreeAA>::Result, Int<1>>::Result::value, "failed");
+      static_assert(Same<Height<TreeAC>::Result, Int<0>>::Result::value, "failed");
     }
   }
 }

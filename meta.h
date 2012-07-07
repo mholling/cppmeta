@@ -38,6 +38,9 @@ namespace Meta {
   template <typename Type1, typename Type2> struct If<Bool<true>, Type1, Type2> { typedef typename Eval<Type1>::Result Result; };
   template <typename Type1, typename Type2> struct If<Bool<false>, Type1, Type2> { typedef typename Eval<Type2>::Result Result; };
   
+  template <typename T1, typename T2> using LesserOf = If<typename LessThan<T1, T2>::Result, T1, T2>;
+  template <typename T1, typename T2> using GreaterOf = If<typename GreaterThan<T1, T2>::Result, T1, T2>;
+  
   template <typename Type, typename Base>
   struct IsOrInherits {
     struct Yes { char a; };
