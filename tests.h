@@ -62,6 +62,8 @@ namespace Meta {
       static_assert(Same<Prepend<float, List<>>::Result, List<float>>::Result::value, "failed");
       static_assert(Same<Concat<List<char, int>, List<float, bool>>::Result, List<char, int, float, bool>>::Result::value, "failed");
 
+      static_assert(Same<Reverse<List<float, char, bool, int>>::Result, List<int, bool, char, float>>::Result::value, "failed");
+      
       template <typename T> using IsFloat = Same<T, float>;
       static_assert(Same<Map<List<int, char, float, bool>, IsFloat>::Result, List<Bool<false>,Bool<false>,Bool<true>,Bool<false>>>::Result::value, "failed");
 
@@ -110,6 +112,8 @@ namespace Meta {
       
       static_assert(Same<Max<Unsorted>::Result, Int<6>>::Result::value, "failed");
       static_assert(Same<Min<Unsorted>::Result, Int<0>>::Result::value, "failed");
+      static_assert(Same<Max<List<Int<0>>>::Result, Int<0>>::Result::value, "failed");
+      static_assert(Same<Min<List<Int<0>>>::Result, Int<0>>::Result::value, "failed");
     }
     namespace TestTrees {
       struct A; struct AA; struct AB; struct AC; struct AD; struct AAA; struct AAB; struct ABA; struct ABB; struct ABC; struct ADA; struct ADB; struct ADAA; struct ADAB;
@@ -179,6 +183,10 @@ namespace Meta {
       static_assert(Same<Height<TreeA>::Result, Int<3>>::Result::value, "failed");
       static_assert(Same<Height<TreeAA>::Result, Int<1>>::Result::value, "failed");
       static_assert(Same<Height<TreeAC>::Result, Int<0>>::Result::value, "failed");
+      
+      static_assert(Same<Depth<A, TreeA>::Result, Int<0>>::Result::value, "failed");
+      static_assert(Same<Depth<AA, TreeA>::Result, Int<1>>::Result::value, "failed");
+      static_assert(Same<Depth<ADAA, TreeA>::Result, Int<3>>::Result::value, "failed");
     }
   }
 }

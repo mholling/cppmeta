@@ -102,5 +102,16 @@ namespace Meta {
   };
   template <typename Node> struct Height<Tree<Node>> { typedef Int<0> Result; };
   
-  // TODO: templates for traversing up & down a list
+  template <typename Type, typename Branch> using Depth = Length<typename Ancestors<Type, Branch>::Result>;
+  
+  template <typename> struct Each;
+  template <typename Node, typename... Branches>
+  struct Each<Tree<Node, Branches...>> {
+    typedef Each Result;
+    template <typename... Args>
+    void operator ()(Args... args) { Node()(args...); Meta::Each<typename Map<List<Branches...>, Meta::Each>::Result>()(args...); }
+  };
+  
+  template <typename Type, typename Branch> using AscendingEach = Each<typename SelfAndAncestors<Type, Branch>::Result>;
+  template <typename Type, typename Branch> using DecendingEach = Each<typename Reverse<typename SelfAndAncestors<Type, Branch>::Result>::Result>;
 }

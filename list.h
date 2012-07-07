@@ -16,43 +16,53 @@ namespace Meta {
   template <typename... Elements1, typename... Elements2>
   struct Concat<List<Elements1...>, List<Elements2...>> { typedef List<Elements1..., Elements2...> Result; };
   
-  // TODO:  modify Inject to optionaly take no Memo and use first element as starting memo
-  template <typename L, typename Memo, template <typename, typename> class Function> struct Inject;
+  template <typename> struct Reverse;
+  template <typename Type, typename... Elements>
+  struct Reverse<List<Type, Elements...>> { typedef typename Append<typename Reverse<List<Elements...>>::Result, Type>::Result Result; };
+  template <> struct Reverse<List<>> { typedef List<> Result; };
+  
+  template <typename L, template <typename, typename> class Function, typename Memo> struct Inject;
   template <typename Head, typename... Tail, typename Memo, template <typename, typename> class Function>
-  struct Inject<List<Head, Tail...>, Memo, Function> {
-    typedef typename Inject<List<Tail...>, typename Function<Head, Memo>::Result, Function>::Result Result;
+  struct Inject<List<Head, Tail...>, Function, Memo> {
+    typedef typename Inject<List<Tail...>, Function, typename Function<Head, Memo>::Result>::Result Result;
   };
   template <typename Memo, template <typename, typename> class Function>
-  struct Inject<List<>, Memo, Function> { typedef Memo Result; };
+  struct Inject<List<>, Function, Memo> { typedef Memo Result; };
+  
+  template <typename L, template <typename, typename> class Function> struct InjectFirst;
+  template <typename Type, template <typename, typename> class Function, typename... Elements>
+  struct InjectFirst<List<Type, Elements...>, Function> {
+    typedef typename Inject<List<Elements...>, Function, Type>::Result Result;
+  };
   
   template <typename L>
   struct Length {
     template <typename Type, typename Memo> using Counter = Increment<Memo>;
-    typedef typename Inject<L, Int<0>, Counter>::Result Result;
+    typedef typename Inject<L, Counter, Int<0>>::Result Result;
   };
   
   template <typename L, template <typename> class Function>
   struct Map {
     template <typename Type, typename Memo> using Mapper = Append<Memo, typename Function<Type>::Result>;
-    typedef typename Inject<L, List<>, Mapper>::Result Result;
+    typedef typename Inject<L, Mapper, List<>>::Result Result;
   };
   
   template <typename L, template <typename, typename> class Function>
   struct MapWithIndex {
     template <typename Type, typename Memo> using Mapper = Append<Memo, typename Function<Type, typename Length<Memo>::Result>::Result>;
-    typedef typename Inject<L, List<>, Mapper>::Result Result;
+    typedef typename Inject<L, Mapper, List<>>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate>
   struct Select {
     template <typename Type, typename Memo> using Selector = If<typename Predicate<Type>::Result, Append<Memo, Type>, Memo>;
-    typedef typename Inject<L, List<>, Selector>::Result Result;
+    typedef typename Inject<L, Selector, List<>>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate>
   struct Reject {
     template <typename Type, typename Memo> using Rejector = If<typename Predicate<Type>::Result, Memo, Append<Memo, Type>>;
-    typedef typename Inject<L, List<>, Rejector>::Result Result;
+    typedef typename Inject<L, Rejector, List<>>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate> struct Find;
@@ -80,7 +90,7 @@ namespace Meta {
   template <typename L>
   struct Unique {
     template <typename Type, typename Memo> using Check = If<typename Contains<Memo, Type>::Result, Memo, Append<Memo, Type>>;
-    typedef typename Inject<L, List<>, Check>::Result Result;
+    typedef typename Inject<L, Check, List<>>::Result Result;
   };
   
   template <typename L, typename Type> struct Index;
@@ -151,8 +161,8 @@ namespace Meta {
   template <typename Head, template <typename, typename> class LessThan>
   struct Sort<List<Head>, LessThan> { typedef List<Head> Result; };
   
-  template <typename L> using Max = Inject<L, typename First<L>::Result, GreaterOf>;
-  template <typename L> using Min = Inject<L, typename First<L>::Result, LesserOf>;
+  template <typename L> using Max = InjectFirst<L, GreaterOf>;
+  template <typename L> using Min = InjectFirst<L, LesserOf>;
   
   template <typename L> struct Each;
   template <typename Head, typename... Tail>
