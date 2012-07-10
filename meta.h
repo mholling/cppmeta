@@ -77,6 +77,7 @@ namespace Meta {
   };
   
   template <typename Type, typename... Args> using HasBoolCallOperator = HasCallOperator<Type, bool, Args...>;
+  template <typename Type, typename... Args> using HasVoidCallOperator = HasCallOperator<Type, void, Args...>;
   
   // 
   // template <unsigned int width, unsigned int position>
