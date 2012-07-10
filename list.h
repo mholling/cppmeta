@@ -24,7 +24,7 @@ namespace Meta {
   template <typename L, template <typename, typename> class Function, typename Memo> struct Inject;
   template <typename Head, typename... Tail, typename Memo, template <typename, typename> class Function>
   struct Inject<List<Head, Tail...>, Function, Memo> {
-    typedef typename Inject<List<Tail...>, Function, typename Function<Head, Memo>::Result>::Result Result;
+    typedef typename Inject<List<Tail...>, Function, typename Function<Memo, Head>::Result>::Result Result;
   };
   template <typename Memo, template <typename, typename> class Function>
   struct Inject<List<>, Function, Memo> { typedef Memo Result; };
@@ -37,31 +37,31 @@ namespace Meta {
   
   template <typename L>
   struct Length {
-    template <typename Type, typename Memo> using Counter = Increment<Memo>;
+    template <typename Memo, typename Type> using Counter = Increment<Memo>;
     typedef typename Inject<L, Counter, Int<0>>::Result Result;
   };
   
   template <typename L, template <typename> class Function>
   struct Map {
-    template <typename Type, typename Memo> using Mapper = Append<Memo, typename Function<Type>::Result>;
+    template <typename Memo, typename Type> using Mapper = Append<Memo, typename Function<Type>::Result>;
     typedef typename Inject<L, Mapper, List<>>::Result Result;
   };
   
   template <typename L, template <typename, typename> class Function>
   struct MapWithIndex {
-    template <typename Type, typename Memo> using Mapper = Append<Memo, typename Function<Type, typename Length<Memo>::Result>::Result>;
+    template <typename Memo, typename Type> using Mapper = Append<Memo, typename Function<Type, typename Length<Memo>::Result>::Result>;
     typedef typename Inject<L, Mapper, List<>>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate>
   struct Select {
-    template <typename Type, typename Memo> using Selector = If<typename Predicate<Type>::Result, Append<Memo, Type>, Memo>;
+    template <typename Memo, typename Type> using Selector = If<typename Predicate<Type>::Result, Append<Memo, Type>, Memo>;
     typedef typename Inject<L, Selector, List<>>::Result Result;
   };
   
   template <typename L, template <typename> class Predicate>
   struct Reject {
-    template <typename Type, typename Memo> using Rejector = If<typename Predicate<Type>::Result, Memo, Append<Memo, Type>>;
+    template <typename Memo, typename Type> using Rejector = If<typename Predicate<Type>::Result, Memo, Append<Memo, Type>>;
     typedef typename Inject<L, Rejector, List<>>::Result Result;
   };
   
@@ -89,7 +89,7 @@ namespace Meta {
   
   template <typename L>
   struct Unique {
-    template <typename Type, typename Memo> using Check = If<typename Contains<Memo, Type>::Result, Memo, Append<Memo, Type>>;
+    template <typename Memo, typename Type> using Check = If<typename Contains<Memo, Type>::Result, Memo, Append<Memo, Type>>;
     typedef typename Inject<L, Check, List<>>::Result Result;
   };
   
@@ -112,16 +112,13 @@ namespace Meta {
   template <typename Head, typename... Tail>
   struct At<List<Head, Tail...>, Int<0>> { typedef Head Result; };
   
-  template <typename> struct Flatten;
+  template <typename Type> struct Flatten { typedef List<Type> Result; };
   template <typename Head, typename... Tail>
   struct Flatten<List<Head, Tail...>> {
-    typedef typename Prepend<Head, typename Flatten<List<Tail...>>::Result>::Result Result;
+    typedef typename Concat<typename Flatten<Head>::Result, typename Flatten<List<Tail...>>::Result>::Result Result; 
   };
-  template <typename Head, typename... Tail1, typename... Tail2>
-  struct Flatten<List<List<Head, Tail1...>, Tail2...>> {
-    typedef typename Concat<typename Flatten<List<Head, Tail1...>>::Result, typename Flatten<List<Tail2...>>::Result>::Result Result;
-  };
-  template <> struct Flatten<List<>> { typedef List<> Result; };
+  template <>
+  struct Flatten<List<>> { typedef List<> Result; };
   
   template <typename L, typename IndexOrElement> struct Before;
   template <typename Index, typename Head, typename... Tail>

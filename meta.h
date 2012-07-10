@@ -9,12 +9,26 @@ namespace Meta {
   template <typename> struct Decrement;
   template <typename Type, Type t> struct Decrement<Value<Type, t>> { typedef Value<Type, t-1> Result; };
   
+  template <typename, typename> struct Plus;
+  template <typename Type, Type t1, Type t2>
+  struct Plus<Value<Type, t1>, Value<Type, t2>> { typedef Value<Type, t1+t2> Result; };
+  template <typename, typename> struct Minus;
+  template <typename Type, Type t1, Type t2>
+  struct Minus<Value<Type, t1>, Value<Type, t2>> { typedef Value<Type, t1-t2> Result; };
+  
   template <typename, typename> struct LessThan;
   template <typename Type, Type t1, Type t2>
   struct LessThan<Value<Type, t1>, Value<Type, t2>> { typedef Bool<(t1 < t2)> Result; };
   template <typename, typename> struct GreaterThan;
   template <typename Type, Type t1, Type t2>
   struct GreaterThan<Value<Type, t1>, Value<Type, t2>> { typedef Bool<(t1 > t2)> Result; };
+  
+  template <typename, typename> struct And;
+  template <typename Type, Type t1, Type t2>
+  struct And<Value<Type, t1>, Value<Type, t2>> { typedef Bool<(t1 && t2)> Result; };
+  template <typename, typename> struct Or;
+  template <typename Type, Type t1, Type t2>
+  struct Or<Value<Type, t1>, Value<Type, t2>> { typedef Bool<(t1 || t2)> Result; };
   
   template <typename Type1, typename Type2> struct Same { typedef Bool<false> Result; };
   template <typename Type> struct Same<Type, Type> { typedef Bool<true> Result; };
@@ -23,11 +37,10 @@ namespace Meta {
   
   template <typename Type>
   struct CanEval {
-    struct Yes { char a; };
-    struct No  { struct Yes a[2]; };
+    struct Yes; struct No;
     template <typename U> static Yes& test(typename U::Result *);
     template <typename>   static No&  test(...);
-    typedef Bool<sizeof(test<Type>(0)) == sizeof(Yes)> Result;
+    typedef typename Same<decltype(test<Type>(0)), Yes&>::Result Result;
   };
   
   template <typename Type, typename Evalable = typename CanEval<Type>::Result> struct Eval;
@@ -43,11 +56,10 @@ namespace Meta {
   
   template <typename Type, typename Base>
   struct IsOrInherits {
-    struct Yes { char a; };
-    struct No  { struct Yes a[2]; };
-    static Yes test(Base*);
-    static No  test(...);
-    typedef Bool<sizeof(test(static_cast<Type *>(0))) == sizeof(Yes)> Result;
+    struct Yes; struct No;
+    static Yes& test(Base*);
+    static No&  test(...);
+    typedef typename Same<decltype(test(static_cast<Type *>(0))), Yes&>::Result Result;
   };
   
   template <typename Type, typename Base>
@@ -57,18 +69,14 @@ namespace Meta {
   
   template <typename Type, typename Return, typename... Args>
   struct HasCallOperator {
-    struct Yes { char a; };
-    struct No  { struct Yes a[2]; };
-    template <typename C, Return (C::*)(Args... args)> struct SFINAE;
-    template <typename C> static Yes& test(SFINAE<C, &C::operator ()> *);
+    struct Yes; struct No;
+    template <typename C, Return (C::*)(Args... args)> struct Signature;
+    template <typename C> static Yes& test(Signature<C, &C::operator ()> *);
     template <typename>   static No&  test(...);
-    typedef Bool<sizeof(test<Type>(0)) == sizeof(Yes)> Result;
+    typedef typename Same<decltype(test<Type>(0)), Yes&>::Result Result;
   };
   
-  template <typename Type, typename... Args>
-  struct HasBoolCallOperator {
-    typedef typename HasCallOperator<Type, bool, Args...>::Result Result;
-  };
+  template <typename Type, typename... Args> using HasBoolCallOperator = HasCallOperator<Type, bool, Args...>;
   
   // 
   // template <unsigned int width, unsigned int position>

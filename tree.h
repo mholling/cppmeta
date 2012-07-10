@@ -23,43 +23,51 @@ namespace Meta {
   template <typename Node, typename... Branches>
   struct Contains<Tree<Node, Branches...>, Node> { typedef Bool<true> Result; };
   
-  template <typename, typename> struct Children;
+  template <typename, typename> struct FindBranch;
   template <typename Type, typename Node, typename... Branches>
-  struct Children<Type, Tree<Node, Branches...>> {
+  struct FindBranch<Tree<Node, Branches...>, Type> {
     static_assert(Contains<Tree<Node, Branches...>, Type>::Result::value, "tree does not contain specified type");
     template <typename Branch> using ContainsType = Contains<Branch, Type>;
     typedef typename Find<List<Branches...>, ContainsType>::Result ContainingBranch;
-    typedef typename Children<Type, ContainingBranch>::Result Result;
+    typedef typename FindBranch<ContainingBranch, Type>::Result Result;
   };
   template <typename Type, typename... Branches>
-  struct Children<Type, Tree<Type, Branches...>> {
+  struct FindBranch<Tree<Type, Branches...>, Type> { typedef Tree<Type, Branches...> Result; };
+  
+  template <typename, typename> struct Children;
+  template <typename Type, typename Node, typename... Branches>
+  struct Children<Tree<Node, Branches...>, Type> {
+    typedef typename Children<typename FindBranch<Tree<Node, Branches...>, Type>::Result, Type>::Result Result;
+  };
+  template <typename Type, typename... Branches>
+  struct Children<Tree<Type, Branches...>, Type> {
     typedef typename Map<List<Branches...>, Root>::Result Result;
   };
   
   template <typename, typename, typename> struct Lineage;
   template <typename Type, typename IncludeSelf, typename Node, typename... Branches>
-  struct Lineage<Type, Tree<Node, Branches...>, IncludeSelf> {
+  struct Lineage<Tree<Node, Branches...>, Type, IncludeSelf> {
     static_assert(Contains<Tree<Node, Branches...>, Type>::Result::value, "tree does not contain specified type");
     template <typename Branch> using ContainsType = Contains<Branch, Type>;
     typedef typename Find<List<Branches...>, ContainsType>::Result ContainingBranch;
-    typedef typename Append<typename Lineage<Type, ContainingBranch, IncludeSelf>::Result, Node>::Result Result;
+    typedef typename Append<typename Lineage<ContainingBranch, Type, IncludeSelf>::Result, Node>::Result Result;
   };
   template <typename Type, typename IncludeSelf, typename... Branches>
-  struct Lineage<Type, Tree<Type, Branches...>, IncludeSelf> { typedef typename If<IncludeSelf, List<Type>, List<>>::Result Result; };
+  struct Lineage<Tree<Type, Branches...>, Type, IncludeSelf> { typedef typename If<IncludeSelf, List<Type>, List<>>::Result Result; };
   
-  template <typename Type, typename Branch> using Ancestors = Lineage<Type, Branch, Bool<false>>;
-  template <typename Type, typename Branch> using SelfAndAncestors = Lineage<Type, Branch, Bool<true>>;
+  template <typename Branch, typename Type> using Ancestors = Lineage<Branch, Type, Bool<false>>;
+  template <typename Branch, typename Type> using SelfAndAncestors = Lineage<Branch, Type, Bool<true>>;
   
-  template <typename Type, typename Branch>
+  template <typename Branch, typename Type>
   struct Parent {
-    typedef typename Ancestors<Type, Branch>::Result AncestorList;
+    typedef typename Ancestors<Branch, Type>::Result AncestorList;
     static_assert(Any<AncestorList>::Result::value, "specified type is root of tree and has no parent");
     typedef typename First<AncestorList>::Result Result;
   };
   
   template <typename, typename, typename> struct CommonBranch;
   template <typename Type1, typename Type2, typename Node, typename... Branches>
-  struct CommonBranch<Type1, Type2, Tree<Node, Branches...>> {
+  struct CommonBranch<Tree<Node, Branches...>, Type1, Type2> {
     static_assert(Contains<Tree<Node, Branches...>, Type1>::Result::value, "tree does not contain specified type");
     static_assert(Contains<Tree<Node, Branches...>, Type2>::Result::value, "tree does not contain specified type");
     template <typename Branch> using ContainsType1 = Contains<Branch, Type1>;
@@ -68,24 +76,38 @@ namespace Meta {
     typedef typename Find<List<Branches...>, ContainsType2>::Result BranchContainingType2;
     typedef typename If<
       typename Same<BranchContainingType1, BranchContainingType2>::Result,
-      CommonBranch<Type1, Type2, BranchContainingType1>,
+      CommonBranch<BranchContainingType1, Type1, Type2>,
       Tree<Node, Branches...>
     >::Result Result;
   };
   template <typename Type1, typename Type2, typename... Branches>
-  struct CommonBranch<Type1, Type2, Tree<Type1, Branches...>> { typedef Tree<Type1, Branches...> Result; };
+  struct CommonBranch<Tree<Type1, Branches...>, Type1, Type2> { typedef Tree<Type1, Branches...> Result; };
   template <typename Type1, typename Type2, typename... Branches>
-  struct CommonBranch<Type1, Type2, Tree<Type2, Branches...>> { typedef Tree<Type2, Branches...> Result; };
+  struct CommonBranch<Tree<Type2, Branches...>, Type1, Type2> { typedef Tree<Type2, Branches...> Result; };
   template <typename Type, typename... Branches>
-  struct CommonBranch<Type, Type, Tree<Type, Branches...>> { typedef Tree<Type, Branches...> Result; };
+  struct CommonBranch<Tree<Type, Branches...>, Type, Type> { typedef Tree<Type, Branches...> Result; };
   
-  template <typename Type1, typename Type2, typename Branch> using CommonAncestor = Root<typename CommonBranch<Type1, Type2, Branch>::Result>;
+  template <typename Branch, typename Type1, typename Type2> using CommonAncestor = Root<typename CommonBranch<Branch, Type1, Type2>::Result>;
   
   template <typename> struct Flatten;
   template <typename Node, typename... Branches>
   struct Flatten<Tree<Node, Branches...>> {
     typedef typename Prepend<Node, typename Flatten<typename Map<List<Branches...>, Meta::Flatten>::Result>::Result>::Result Result;
   };
+  
+  template <typename, typename> struct Index;
+  template <typename Type, typename Node, typename... Branches>
+  struct Index<Tree<Node, Branches...>, Type> {
+    typedef typename Index<typename Flatten<Tree<Node, Branches...>>::Result, Type>::Result Result;
+  };
+  
+  template <typename> struct Leaves;
+  template <typename Node, typename... Branches>
+  struct Leaves<Tree<Node, Branches...>> {
+    typedef typename Inject<typename Map<List<Branches...>, Meta::Leaves>::Result, Concat, List<>>::Result Result;
+  };
+  template <typename Node>
+  struct Leaves<Tree<Node>> { typedef List<Node> Result; };
   
   template <typename, template <typename> class> struct Find;
   template <typename Node, typename... Branches, template <typename> class Predicate>
@@ -102,7 +124,13 @@ namespace Meta {
   };
   template <typename Node> struct Height<Tree<Node>> { typedef Int<0> Result; };
   
-  template <typename Type, typename Branch> using Depth = Length<typename Ancestors<Type, Branch>::Result>;
+  template <typename Branch, typename Type> using Depth = Length<typename Ancestors<Branch, Type>::Result>;
+  
+  template <typename Tree, typename Type1, typename Type2>
+  struct Distance {
+    typedef typename CommonBranch<Tree, Type1, Type2>::Result Branch;
+    typedef typename Plus<typename Depth<Branch, Type1>::Result, typename Depth<Branch, Type2>::Result>::Result Result;
+  };
   
   template <typename> struct Each;
   template <typename Node, typename... Branches>
@@ -112,6 +140,6 @@ namespace Meta {
     void operator ()(Args... args) { Node()(args...); Meta::Each<typename Map<List<Branches...>, Meta::Each>::Result>()(args...); }
   };
   
-  template <typename Type, typename Branch> using AscendingEach = Each<typename SelfAndAncestors<Type, Branch>::Result>;
-  template <typename Type, typename Branch> using DecendingEach = Each<typename Reverse<typename SelfAndAncestors<Type, Branch>::Result>::Result>;
+  template <typename Branch, typename Type> using AscendingEach = Each<typename SelfAndAncestors<Branch, Type>::Result>;
+  template <typename Branch, typename Type> using DescendingEach = Each<typename Reverse<typename SelfAndAncestors<Branch, Type>::Result>::Result>;
 }

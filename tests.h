@@ -7,12 +7,24 @@ namespace Meta {
       static_assert(Same<Decrement<Int<10>>::Result, Int<9>>::Result::value, "failed");
       static_assert(Same<Increment<Int<9>>::Result, Int<10>>::Result::value, "failed");
       
+      static_assert(Same<Plus<Int<10>, Int<3>>::Result, Int<13>>::Result::value, "failed");
+      static_assert(Same<Minus<Int<10>, Int<3>>::Result, Int<7>>::Result::value, "failed");
+      
       static_assert(LessThan<Int<4>, Int<5>>::Result::value, "failed");
       static_assert(!LessThan<Int<5>, Int<5>>::Result::value, "failed");
       static_assert(!LessThan<Int<6>, Int<5>>::Result::value, "failed");
       static_assert(!GreaterThan<Int<4>, Int<5>>::Result::value, "failed");
       static_assert(!GreaterThan<Int<5>, Int<5>>::Result::value, "failed");
       static_assert(GreaterThan<Int<6>, Int<5>>::Result::value, "failed");
+      
+      static_assert(Same<And<Bool<true>, Bool<true>>::Result, Bool<true>>::Result::value, "failed");
+      static_assert(Same<And<Bool<true>, Bool<false>>::Result, Bool<false>>::Result::value, "failed");
+      static_assert(Same<And<Bool<false>, Bool<true>>::Result, Bool<false>>::Result::value, "failed");
+      static_assert(Same<And<Bool<false>, Bool<false>>::Result, Bool<false>>::Result::value, "failed");
+      static_assert(Same<Or<Bool<true>, Bool<true>>::Result, Bool<true>>::Result::value, "failed");
+      static_assert(Same<Or<Bool<true>, Bool<false>>::Result, Bool<true>>::Result::value, "failed");
+      static_assert(Same<Or<Bool<false>, Bool<true>>::Result, Bool<true>>::Result::value, "failed");
+      static_assert(Same<Or<Bool<false>, Bool<false>>::Result, Bool<false>>::Result::value, "failed");
       
       static_assert(Same<Self<int>::Result, int>::Result::value, "failed");
       static_assert(!Same<Self<bool>::Result, int>::Result::value, "failed");
@@ -144,38 +156,52 @@ namespace Meta {
       static_assert(Contains<TreeA, ADAB>::Result::value, "failed");
       static_assert(!Contains<TreeA, float>::Result::value, "failed");
       
+      static_assert(Same<FindBranch<TreeA, A>::Result, TreeA>::Result::value, "failed");
+      static_assert(Same<FindBranch<TreeA, AD>::Result, TreeAD>::Result::value, "failed");
+      static_assert(Same<FindBranch<TreeA, ADAB>::Result, TreeADAB>::Result::value, "failed");
+      
       static_assert(Same<Root<TreeA>::Result, A>::Result::value, "failed");
       
-      static_assert(Same<Children<A,TreeA>::Result, List<AA, AB, AC, AD>>::Result::value, "failed");
-      static_assert(Same<Children<AB,TreeA>::Result, List<ABA, ABB, ABC>>::Result::value, "failed");
+      static_assert(Same<Children<TreeA, A>::Result, List<AA, AB, AC, AD>>::Result::value, "failed");
+      static_assert(Same<Children<TreeA, AB>::Result, List<ABA, ABB, ABC>>::Result::value, "failed");
       
-      static_assert(Same<Ancestors<A, TreeA>::Result, List<>>::Result::value, "failed");
-      static_assert(Same<Ancestors<AB, TreeA>::Result, List<A>>::Result::value, "failed");
-      static_assert(Same<Ancestors<ABC, TreeA>::Result, List<AB, A>>::Result::value, "failed");
-      static_assert(Same<Ancestors<ADAB, TreeA>::Result, List<ADA, AD, A>>::Result::value, "failed");
+      static_assert(Same<Ancestors<TreeA, A>::Result, List<>>::Result::value, "failed");
+      static_assert(Same<Ancestors<TreeA, AB>::Result, List<A>>::Result::value, "failed");
+      static_assert(Same<Ancestors<TreeA, ABC>::Result, List<AB, A>>::Result::value, "failed");
+      static_assert(Same<Ancestors<TreeA, ADAB>::Result, List<ADA, AD, A>>::Result::value, "failed");
       
-      static_assert(Same<SelfAndAncestors<A, TreeA>::Result, List<A>>::Result::value, "failed");
-      static_assert(Same<SelfAndAncestors<AB, TreeA>::Result, List<AB, A>>::Result::value, "failed");
-      static_assert(Same<SelfAndAncestors<ABC, TreeA>::Result, List<ABC, AB, A>>::Result::value, "failed");
-      static_assert(Same<SelfAndAncestors<ADAB, TreeA>::Result, List<ADAB, ADA, AD, A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<TreeA, A>::Result, List<A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<TreeA, AB>::Result, List<AB, A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<TreeA, ABC>::Result, List<ABC, AB, A>>::Result::value, "failed");
+      static_assert(Same<SelfAndAncestors<TreeA, ADAB>::Result, List<ADAB, ADA, AD, A>>::Result::value, "failed");
       
-      static_assert(Same<Parent<AB, TreeA>::Result, A>::Result::value, "failed");
-      static_assert(Same<Parent<ABB, TreeA>::Result, AB>::Result::value, "failed");
-      static_assert(Same<Parent<ADAB, TreeA>::Result, ADA>::Result::value, "failed");
+      static_assert(Same<Parent<TreeA, AB>::Result, A>::Result::value, "failed");
+      static_assert(Same<Parent<TreeA, ABB>::Result, AB>::Result::value, "failed");
+      static_assert(Same<Parent<TreeA, ADAB>::Result, ADA>::Result::value, "failed");
       
-      static_assert(Same<CommonBranch<ADAB, AAB, TreeA>::Result, TreeA>::Result::value, "failed");
-      static_assert(Same<CommonBranch<ADAB, ADB, TreeA>::Result, TreeAD>::Result::value, "failed");
-      static_assert(Same<CommonBranch<ADAA, ADAB, TreeA>::Result, TreeADA>::Result::value, "failed");
-      static_assert(Same<CommonBranch<ADAA, AD, TreeA>::Result, TreeAD>::Result::value, "failed");
-      static_assert(Same<CommonBranch<AD, AD, TreeA>::Result, TreeAD>::Result::value, "failed");
+      static_assert(Same<CommonBranch<TreeA, ADAB, AAB>::Result, TreeA>::Result::value, "failed");
+      static_assert(Same<CommonBranch<TreeA, ADAB, ADB>::Result, TreeAD>::Result::value, "failed");
+      static_assert(Same<CommonBranch<TreeA, ADAA, ADAB>::Result, TreeADA>::Result::value, "failed");
+      static_assert(Same<CommonBranch<TreeA, ADAA, AD>::Result, TreeAD>::Result::value, "failed");
+      static_assert(Same<CommonBranch<TreeA, AD, AD>::Result, TreeAD>::Result::value, "failed");
       
-      static_assert(Same<CommonAncestor<ADAB, AAB, TreeA>::Result, A>::Result::value, "failed");
-      static_assert(Same<CommonAncestor<ADAB, ADB, TreeA>::Result, AD>::Result::value, "failed");
-      static_assert(Same<CommonAncestor<ADAA, ADAB, TreeA>::Result, ADA>::Result::value, "failed");
-      static_assert(Same<CommonAncestor<ADAA, AD, TreeA>::Result, AD>::Result::value, "failed");
-      static_assert(Same<CommonAncestor<AD, AD, TreeA>::Result, AD>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<TreeA, ADAB, AAB>::Result, A>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<TreeA, ADAB, ADB>::Result, AD>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<TreeA, ADAA, ADAB>::Result, ADA>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<TreeA, ADAA, AD>::Result, AD>::Result::value, "failed");
+      static_assert(Same<CommonAncestor<TreeA, AD, AD>::Result, AD>::Result::value, "failed");
       
       static_assert(Same<Flatten<TreeA>::Result, List<A, AA, AAA, AAB, AB, ABA, ABB, ABC, AC, AD, ADA, ADAA, ADAB, ADB>>::Result::value, "failed");
+      
+      static_assert(Same<Index<TreeA, A>::Result, Int<0>>::Result::value, "failed");
+      static_assert(Same<Index<TreeA, AA>::Result, Int<1>>::Result::value, "failed");
+      static_assert(Same<Index<TreeA, AAA>::Result, Int<2>>::Result::value, "failed");
+      static_assert(Same<Index<TreeA, AAB>::Result, Int<3>>::Result::value, "failed");
+      static_assert(Same<Index<TreeA, AB>::Result, Int<4>>::Result::value, "failed");
+      static_assert(Same<Index<TreeA, ABA>::Result, Int<5>>::Result::value, "failed");
+      static_assert(Same<Index<TreeA, ABB>::Result, Int<6>>::Result::value, "failed");
+      
+      static_assert(Same<Leaves<TreeA>::Result, List<AAA, AAB, ABA, ABB, ABC, AC, ADAA, ADAB, ADB>>::Result::value, "failed");
       
       template <typename Type> using IsADA = Same<ADA, Type>;
       static_assert(Same<Find<TreeA, IsADA>::Result, ADA>::Result::value, "failed");
@@ -184,9 +210,16 @@ namespace Meta {
       static_assert(Same<Height<TreeAA>::Result, Int<1>>::Result::value, "failed");
       static_assert(Same<Height<TreeAC>::Result, Int<0>>::Result::value, "failed");
       
-      static_assert(Same<Depth<A, TreeA>::Result, Int<0>>::Result::value, "failed");
-      static_assert(Same<Depth<AA, TreeA>::Result, Int<1>>::Result::value, "failed");
-      static_assert(Same<Depth<ADAA, TreeA>::Result, Int<3>>::Result::value, "failed");
+      static_assert(Same<Depth<TreeA, A>::Result, Int<0>>::Result::value, "failed");
+      static_assert(Same<Depth<TreeA, AA>::Result, Int<1>>::Result::value, "failed");
+      static_assert(Same<Depth<TreeA, ADAA>::Result, Int<3>>::Result::value, "failed");
+      
+      static_assert(Same<Distance<TreeA, A, A>::Result, Int<0>>::Result::value, "failed");
+      static_assert(Same<Distance<TreeA, A, AA>::Result, Int<1>>::Result::value, "failed");
+      static_assert(Same<Distance<TreeA, A, AAA>::Result, Int<2>>::Result::value, "failed");
+      static_assert(Same<Distance<TreeA, AA, AB>::Result, Int<2>>::Result::value, "failed");
+      static_assert(Same<Distance<TreeA, ABA, ABC>::Result, Int<2>>::Result::value, "failed");
+      static_assert(Same<Distance<TreeA, ADAB, ABB>::Result, Int<5>>::Result::value, "failed");
     }
   }
 }
