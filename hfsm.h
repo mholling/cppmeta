@@ -81,8 +81,8 @@ namespace Meta {
     };
   
     template <typename Machine, typename Event>
-    struct Dispatcher {
-      typedef Dispatcher Result;
+    struct Dispatch {
+      typedef Dispatch Result;
       typedef typename Machine::States States;
   
       template <typename> struct TryTransition;
@@ -127,18 +127,21 @@ namespace Meta {
       void operator()() { Until<Dispatched>()(); }
     };
   
-    template <typename Machines, typename Event>
-    struct Dispatch {
-      template <typename Machine> using GetDispatcher = Dispatcher<Machine, Event>;
-      typedef typename Map<Machines, GetDispatcher>::Result Dispatchers;
-      void operator()() { Each<Dispatchers>()(); }
+    template <typename... Machines, typename Event>
+    struct Dispatch<List<Machines...>, Event> {
+      template <typename Machine> using GetDispatch = Dispatch<Machine, Event>;
+      void operator()() { Each<typename Map<List<Machines...>, GetDispatch>::Result>()(); }
     };
   
     template <typename Machine>
-    struct Initialiser {
-      typedef Initialiser Result;
+    struct Initialise {
+      typedef Initialise Result;
       void operator()() { EnterStates<Machine>()(); }
     };
-    template <typename Machines> using Initialise = Each<typename Map<Machines, HFSM::Initialiser>::Result>;
+    
+    template <typename... Machines>
+    struct Initialise<List<Machines...>> {
+      void operator()() { Each<typename Map<List<Machines...>, HFSM::Initialise>::Result>()(); }
+    };
   }
 }
