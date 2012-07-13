@@ -1,4 +1,4 @@
-namespace Meta {
+namespace CppMeta {
   template <typename...> struct List;
   
   template <typename> struct IsList { typedef Bool<false> Result; };

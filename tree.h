@@ -1,4 +1,4 @@
-namespace Meta {
+namespace CppMeta {
   template <typename Node, typename... Branches> struct Tree;
   
   template <typename> struct IsTree { typedef Bool<false> Result; };
@@ -92,7 +92,7 @@ namespace Meta {
   template <typename> struct Flatten;
   template <typename Node, typename... Branches>
   struct Flatten<Tree<Node, Branches...>> {
-    typedef typename Prepend<Node, typename Flatten<typename Map<List<Branches...>, Meta::Flatten>::Result>::Result>::Result Result;
+    typedef typename Prepend<Node, typename Flatten<typename Map<List<Branches...>, CppMeta::Flatten>::Result>::Result>::Result Result;
   };
   
   template <typename, typename> struct Index;
@@ -104,7 +104,7 @@ namespace Meta {
   template <typename> struct Leaves;
   template <typename Node, typename... Branches>
   struct Leaves<Tree<Node, Branches...>> {
-    typedef typename Inject<typename Map<List<Branches...>, Meta::Leaves>::Result, Concat, List<>>::Result Result;
+    typedef typename Inject<typename Map<List<Branches...>, CppMeta::Leaves>::Result, Concat, List<>>::Result Result;
   };
   template <typename Node>
   struct Leaves<Tree<Node>> { typedef List<Node> Result; };
@@ -118,7 +118,7 @@ namespace Meta {
   template <typename> struct Height;
   template <typename Node, typename... Branches>
   struct Height<Tree<Node, Branches...>> {
-    typedef typename Map<List<Branches...>, Meta::Height>::Result BranchHeights;
+    typedef typename Map<List<Branches...>, CppMeta::Height>::Result BranchHeights;
     typedef typename Max<BranchHeights>::Result MaxBranchHeight;
     typedef typename Increment<MaxBranchHeight>::Result Result; 
   };
@@ -131,15 +131,4 @@ namespace Meta {
     typedef typename CommonBranch<Tree, Type1, Type2>::Result Branch;
     typedef typename Plus<typename Depth<Branch, Type1>::Result, typename Depth<Branch, Type2>::Result>::Result Result;
   };
-  
-  template <typename> struct Each;
-  template <typename Node, typename... Branches>
-  struct Each<Tree<Node, Branches...>> {
-    typedef Each Result;
-    template <typename... Args>
-    void operator ()(Args... args) { Node()(args...); Meta::Each<typename Map<List<Branches...>, Meta::Each>::Result>()(args...); }
-  };
-  
-  template <typename Branch, typename Type> using AscendingEach = Each<typename SelfAndAncestors<Branch, Type>::Result>;
-  template <typename Branch, typename Type> using DescendingEach = Each<typename Reverse<typename SelfAndAncestors<Branch, Type>::Result>::Result>;
 }

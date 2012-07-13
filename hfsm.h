@@ -1,4 +1,4 @@
-namespace Meta {
+namespace CppMeta {
   namespace HFSM {
     template <typename Machine>
     struct CurrentState {
@@ -82,7 +82,7 @@ namespace Meta {
     };
   
     template <typename Machine, typename Event>
-    struct Dispatcher {
+    struct Dispatch {
       typedef typename Machine::States States;
   
       template <typename> struct TryTransition;
@@ -124,7 +124,8 @@ namespace Meta {
     
       typedef typename Leaves<States>::Result LeafStates;
       typedef typename Map<LeafStates, DispatchIfCurrent>::Result Dispatched;
-      static void dispatch() { Until<Dispatched>()(); }
+      void operator()() { Until<Dispatched>()(); }
+      static void dispatch() { Dispatch()(); }
     };
   
     template <typename Machine>

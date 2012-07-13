@@ -1,6 +1,6 @@
-namespace Meta {
+namespace CppMeta {
   namespace Tests {
-    namespace TestBasics {
+    namespace Basics {
       static_assert(Same<int, int>::Result::value, "failed");
       static_assert(!Same<int, char>::Result::value, "failed");
       
@@ -64,7 +64,7 @@ namespace Meta {
       static_assert(!HasBoolCallOperator<VoidReturn>::Result::value, "failed");
       static_assert( HasBoolCallOperator<BoolReturn>::Result::value, "failed");
     }
-    namespace TestLists {
+    namespace Lists {
       static_assert(IsList<List<int, char>>::Result::value, "failed");
       static_assert(!IsList<int>::Result::value, "failed");
 
@@ -128,8 +128,49 @@ namespace Meta {
       static_assert(Same<Min<Unsorted>::Result, Int<0>>::Result::value, "failed");
       static_assert(Same<Max<List<Int<0>>>::Result, Int<0>>::Result::value, "failed");
       static_assert(Same<Min<List<Int<0>>>::Result, Int<0>>::Result::value, "failed");
-    }
-    namespace TestTrees {
+      
+      int x, y, z;
+      struct SetX { void operator()(int v) { x = v; } };
+      struct SetY { void operator()(int v) { y = v; } };
+      struct SetZ { void operator()(int v) { z = v; } };
+      typedef List<SetX, SetY, SetZ> Setters;
+      
+      int count;
+      struct StartFalse { bool operator()() { count++; return false; } };
+      struct StillFalse { bool operator()() { count++; return false; } };
+      struct NowTrue    { bool operator()() { count++; return true; } };
+      struct TrueAgain  { bool operator()() { count++; return true; } };
+      struct FinalFalse { bool operator()() { count++; return false; } };
+      typedef List<StartFalse, StillFalse, NowTrue, TrueAgain, FinalFalse> Success;
+      typedef List<StartFalse, StillFalse, FinalFalse> Failure;
+      typedef List<NowTrue, TrueAgain, FinalFalse> SucceedTwiceThenFail;
+      typedef List<NowTrue, TrueAgain> SucceedTwice;
+      
+      void test() {
+        Each<List<SetX, SetY, SetZ>>()(10);
+        assert(x == 10);
+        assert(y == 10);
+        assert(z == 10);
+
+        count = 0;
+        bool result;
+        assert(result = Until<Success>()());
+        assert(count == 3);
+
+        count = 0;
+        assert(result = !Until<Failure>()());
+        assert(count == 3);
+
+        count = 0;
+        assert(result = While<SucceedTwice>()());
+        assert(count == 2);
+
+        count = 0;
+        assert(result = !While<SucceedTwiceThenFail>()());
+        assert(count == 3);
+      }
+    };
+    namespace Trees {
       struct A; struct AA; struct AB; struct AC; struct AD; struct AAA; struct AAB; struct ABA; struct ABB; struct ABC; struct ADA; struct ADB; struct ADAA; struct ADAB;
       
           typedef Tree<AAA> TreeAAA;
@@ -222,6 +263,111 @@ namespace Meta {
       static_assert(Same<Distance<TreeA, AA, AB>::Result, Int<2>>::Result::value, "failed");
       static_assert(Same<Distance<TreeA, ABA, ABC>::Result, Int<2>>::Result::value, "failed");
       static_assert(Same<Distance<TreeA, ADAB, ABB>::Result, Int<5>>::Result::value, "failed");
+    }
+    namespace HFSMs {
+      using namespace HFSM;
+      
+      struct VCR {
+        struct PluggedIn;
+          struct Active;
+            struct Stopped;
+            struct Playing;
+              struct NormalSpeed;
+              struct FastForwarding;
+                struct DoubleSpeed;
+                struct QuadSpeed;
+                struct HighSpeed;
+              struct Rewinding;
+            struct Paused;
+          struct Standby;
+      
+          typedef Tree<Standby> StandbyTree;
+            typedef Tree<Stopped> StoppedTree;
+              typedef Tree<NormalSpeed> NormalSpeedTree;
+                typedef Tree<DoubleSpeed> DoubleSpeedTree;
+                typedef Tree<QuadSpeed> QuadSpeedTree;
+                typedef Tree<HighSpeed> HighSpeedTree;
+              typedef Tree<FastForwarding, DoubleSpeedTree, QuadSpeedTree, HighSpeedTree> FastForwardingTree;
+              typedef Tree<Rewinding> RewindingTree;
+            typedef Tree<Playing, NormalSpeedTree, FastForwardingTree, RewindingTree> PlayingTree;
+            typedef Tree<Paused> PausedTree;
+          typedef Tree<Active, StoppedTree, PlayingTree, PausedTree> ActiveTree;
+        typedef Tree<PluggedIn, ActiveTree, StandbyTree> States;
+        
+        static_assert(Same<DefaultPath<States>::Result, List<PluggedIn, Active, Stopped>>::Result::value, "failed");
+        static_assert(Same<DefaultPath<ActiveTree>::Result, List<Active, Stopped>>::Result::value, "failed");
+        static_assert(Same<DefaultPath<PlayingTree>::Result, List<Playing, NormalSpeed>>::Result::value, "failed");
+        
+        template <typename> static void enter() {}
+        template <typename> static void exit() {}
+        template <typename, typename, typename> struct Transition;
+      };
+      
+      struct PowerButton; struct PlayButton; struct PauseButton; struct ForwardButton; struct ReverseButton; struct StopButton;
+      
+      template<> struct VCR::Transition<VCR::Active, PowerButton, VCR::Standby> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Standby, PowerButton, VCR::Active> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Stopped, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::FastForwarding, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Rewinding, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Playing, PauseButton, VCR::Paused> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Paused, PauseButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::NormalSpeed, ForwardButton, VCR::DoubleSpeed> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::DoubleSpeed, ForwardButton, VCR::QuadSpeed> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::QuadSpeed, ForwardButton, VCR::HighSpeed> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::HighSpeed, ForwardButton, VCR::DoubleSpeed> : NoTransitionAction, NoTransitionGuard { };
+      
+      void test() {
+        bool test;
+        
+        Initialise<VCR>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        assert(test = !CurrentState<VCR>::Test<VCR::Paused>()());
+        
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Standby>()());
+        
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        
+        Dispatch<VCR, PlayButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
+        
+        Dispatch<VCR, ForwardButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::DoubleSpeed>()());
+        
+        Dispatch<VCR, ForwardButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::QuadSpeed>()());
+        
+        Dispatch<VCR, ForwardButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::HighSpeed>()());
+        
+        Dispatch<VCR, ForwardButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::DoubleSpeed>()());
+        
+        Dispatch<VCR, PlayButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
+        
+        Dispatch<VCR, PauseButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Paused>()());
+        
+        Dispatch<VCR, PauseButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
+        
+        Dispatch<VCR, ForwardButton>()();
+        Dispatch<VCR, ForwardButton>()();
+        Dispatch<VCR, PlayButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
+        
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Standby>()());
+        
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+      }
+    }
+    namespace Scheduling {
+      void test() { } // TODO!
     }
   }
 }

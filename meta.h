@@ -1,4 +1,4 @@
-namespace Meta {
+namespace CppMeta {
   template <typename Type, Type t> struct Value { static const Type value = t; };
   template <bool b> using Bool = Value<bool, b>;
   template <int  i> using Int  = Value<int,  i>;
@@ -78,63 +78,6 @@ namespace Meta {
   
   template <typename Type, typename... Args> using HasBoolCallOperator = HasCallOperator<Type, bool, Args...>;
   template <typename Type, typename... Args> using HasVoidCallOperator = HasCallOperator<Type, void, Args...>;
-  
-  // 
-  // template <unsigned int width, unsigned int position>
-  // struct Mask {
-  //   enum { value = Mask<width - 1, position + 1>::value | Mask<1, position>::value };
-  // };
-  // 
-  // template <unsigned int position>
-  // struct Mask<1, position> {
-  //   enum { value = 1 << position };
-  // };
-  // 
-  // template <unsigned int width, unsigned int position>
-  // struct BitField {
-  //   template <typename T>
-  //   T operator ()(T t) { return (t >> position) & Mask<width, 0>::value; }
-  // };
-  // 
-  // template <uint32_t mask>
-  // struct MaskToPosition {
-  //   enum { value = mask & 1 ? 0 : 1 + MaskToPosition<(mask >> 1)>::value };
-  // };
-  // 
-  // template <>
-  // struct MaskToPosition<1> {
-  //   enum { value = 0 };
-  // };
-  // 
-  // template <uint32_t i>
-  // struct BitCount {
-  //   enum { value = (i & 1) + BitCount<(i >> 1)>::value };
-  // };
-  // 
-  // template <>
-  // struct BitCount<0> {
-  //   enum { value = 0 };
-  // };
-  // 
-  // template <uint32_t i>
-  // struct IsPowerOfTwo {
-  //   enum { value = i && (i & (i - 1)) == 0 };
-  // };
-  // 
-  // template <uint32_t i>
-  // struct Bits {
-  //   enum { value = 1 + Bits<(i >> 1)>::value };
-  // };
-  // 
-  // template <>
-  // struct Bits<0> {
-  //   enum { value = 0 };
-  // };
-  // 
-  // template <int i>
-  // struct Int {
-  //   enum { value = i };
-  // };
 }
 
 
