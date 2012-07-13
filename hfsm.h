@@ -46,6 +46,7 @@ namespace Meta {
       typedef typename Reverse<typename Ancestors<Substates, Target>::Result>::Result TargetEntryPath;
       typedef typename DefaultPath<typename FindBranch<Substates, Target>::Result>::Result DefaultEntryPath;
       typedef typename Concat<TargetEntryPath, DefaultEntryPath>::Result EntryPath;
+      // TODO: change template <> enter to template class with operator()() ? (also for exits?)
       template <typename State> struct GetEntry { typedef GetEntry Result; void operator()() { Machine::template enter<State>(); } };
       typedef typename Map<EntryPath, GetEntry>::Result Entries;
       typedef typename Last<EntryPath>::Result FinalState;
@@ -81,8 +82,7 @@ namespace Meta {
     };
   
     template <typename Machine, typename Event>
-    struct Dispatch {
-      typedef Dispatch Result;
+    struct Dispatcher {
       typedef typename Machine::States States;
   
       template <typename> struct TryTransition;
@@ -124,13 +124,7 @@ namespace Meta {
     
       typedef typename Leaves<States>::Result LeafStates;
       typedef typename Map<LeafStates, DispatchIfCurrent>::Result Dispatched;
-      void operator()() { Until<Dispatched>()(); }
-    };
-  
-    template <typename... Machines, typename Event>
-    struct Dispatch<List<Machines...>, Event> {
-      template <typename Machine> using GetDispatch = Dispatch<Machine, Event>;
-      void operator()() { Each<typename Map<List<Machines...>, GetDispatch>::Result>()(); }
+      static void dispatch() { Until<Dispatched>()(); }
     };
   
     template <typename Machine>
@@ -138,10 +132,16 @@ namespace Meta {
       typedef Initialise Result;
       void operator()() { EnterStates<Machine>()(); }
     };
-    
-    template <typename... Machines>
-    struct Initialise<List<Machines...>> {
-      void operator()() { Each<typename Map<List<Machines...>, HFSM::Initialise>::Result>()(); }
+
+    template <typename Machine, typename Event>
+    struct RespondsTo {
+      typedef typename Flatten<typename Machine::States>::Result States;
+      template <typename State>
+      struct HasEventTransition {
+        template <typename Target> using StateHasEventTransitionTo = TransitionIsImplemented<typename Machine::template Transition<State, Event, Target>>;
+        typedef typename Any<typename Select<States, StateHasEventTransitionTo>::Result>::Result Result;
+      };
+      typedef typename Any<typename Select<States, HasEventTransition>::Result>::Result Result;
     };
   }
 }

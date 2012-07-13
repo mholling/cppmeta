@@ -136,6 +136,12 @@ namespace Meta {
   template <>
   struct After<List<>, Int<-1>> { typedef List<> Result; };
   
+  template <typename L, typename Type> struct UpTo;
+  template <typename Head, typename... Tail, typename Type>
+  struct UpTo<List<Head, Tail...>, Type> { typedef typename Prepend<Head, typename UpTo<List<Tail...>, Type>::Result>::Result Result; };
+  template <typename Type, typename... Tail>
+  struct UpTo<List<Type, Tail...>, Type> { typedef List<> Result; };
+  
   template <typename L, template <typename, typename> class LessThan>
   struct Sort {
     template <typename, typename> struct Merge;

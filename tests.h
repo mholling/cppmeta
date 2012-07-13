@@ -117,6 +117,8 @@ namespace Meta {
 
       static_assert(Same<Before<List<int, char, bool, float>, Int<3>>::Result, List<int, char, bool>>::Result::value, "failed");
       static_assert(Same<After<List<int, char, bool, float>, Int<1>>::Result, List<bool, float>>::Result::value, "failed");
+      static_assert(Same<UpTo<List<int, char, bool, float>, bool>::Result, List<int, char>>::Result::value, "failed");
+      static_assert(Same<UpTo<List<int, char, bool, float>, int>::Result, List<>>::Result::value, "failed");
 
       typedef List<Int<1>, Int<6>, Int<0>, Int<4>, Int<3>, Int<2>, Int<5>> Unsorted;
       typedef List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>, Int<5>, Int<6>> Sorted;
