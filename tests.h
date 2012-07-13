@@ -298,7 +298,8 @@ namespace CppMeta {
         
         template <typename> static void enter() {}
         template <typename> static void exit() {}
-        template <typename, typename, typename> struct Transition;
+        template <typename, typename, typename> struct Guard;
+        template <typename, typename, typename> struct Action;
       };
       
       bool standby_light = false;
@@ -313,27 +314,24 @@ namespace CppMeta {
       
       bool battery_is_flat = false;
       bool startup_sound_played = false;
-      template<> struct VCR::Transition<VCR::Active, PowerButton, VCR::Standby> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::Standby, PowerButton, VCR::Active> : NoTransitionAction {
-        static bool guard() { return !battery_is_flat; }
-        static void action() { startup_sound_played = true; }
+      template<> struct VCR::Action<VCR::Active, PowerButton, VCR::Standby> { void operator()() { } };
+      template<> struct VCR::Guard<VCR::Standby, PowerButton, VCR::Active> {
+        bool operator()() { return !battery_is_flat; }
       };
-      
-      template<> struct VCR::Transition<VCR::Active, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
-      
-      template<> struct VCR::Transition<VCR::Playing, PauseButton, VCR::Paused> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::Paused, PauseButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
-      
-      template<> struct VCR::Transition<VCR::NormalSpeed, ForwardButton, VCR::DoubleSpeed> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::DoubleSpeed, ForwardButton, VCR::QuadSpeed> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::QuadSpeed, ForwardButton, VCR::HighSpeed> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::HighSpeed, ForwardButton, VCR::DoubleSpeed> : NoTransitionAction, NoTransitionGuard { };
-      
-      template<> struct VCR::Transition<VCR::Stopped, ForwardButton, VCR::FastForwarding> : NoTransitionAction, NoTransitionGuard { };
-      
-      template<> struct VCR::Transition<VCR::Playing, StopButton, VCR::Stopped> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::FastForwarding, StopButton, VCR::Stopped> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::Paused, StopButton, VCR::Stopped> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Action<VCR::Standby, PowerButton, VCR::Active> {
+        void operator()() { startup_sound_played = true; }
+      };
+      template <> struct VCR::Action<VCR::Active, PlayButton, VCR::Playing> { void operator()() { } };
+      template <> struct VCR::Action<VCR::Playing, PauseButton, VCR::Paused> { void operator()() { } };
+      template <> struct VCR::Action<VCR::Paused, PauseButton, VCR::Playing> { void operator()() { } };
+      template <> struct VCR::Action<VCR::NormalSpeed, ForwardButton, VCR::DoubleSpeed> { void operator()() { } };
+      template <> struct VCR::Action<VCR::DoubleSpeed, ForwardButton, VCR::QuadSpeed> { void operator()() { } };
+      template <> struct VCR::Action<VCR::QuadSpeed, ForwardButton, VCR::HighSpeed> { void operator()() { } };
+      template <> struct VCR::Action<VCR::HighSpeed, ForwardButton, VCR::DoubleSpeed> { void operator()() { } };
+      template <> struct VCR::Action<VCR::Stopped, ForwardButton, VCR::FastForwarding> { void operator()() { } };
+      template <> struct VCR::Action<VCR::Playing, StopButton, VCR::Stopped> { void operator()() { } };
+      template <> struct VCR::Action<VCR::FastForwarding, StopButton, VCR::Stopped> { void operator()() { } };
+      template <> struct VCR::Action<VCR::Paused, StopButton, VCR::Stopped> { void operator()() { } };
       
       static_assert(RespondsTo<VCR, PowerButton>::Result::value, "failed");
       static_assert(RespondsTo<VCR, PlayButton>::Result::value, "failed");
@@ -438,7 +436,8 @@ namespace CppMeta {
         typedef Tree<A, Tree<AA>, Tree<AB>, Tree<AC>> States;
         template <typename> static void enter() { }
         template <typename> static void exit() { }
-        template <typename, typename, typename> struct Transition;
+        template <typename, typename, typename> struct Guard;
+        template <typename, typename, typename> struct Action;
       };
       
       struct X; struct XX; struct XY; struct XZ;
@@ -446,7 +445,8 @@ namespace CppMeta {
         typedef Tree<X, Tree<XX>, Tree<XY>, Tree<XZ>> States;
         template <typename> static void enter() { }
         template <typename> static void exit() { }
-        template <typename, typename, typename> struct Transition;
+        template <typename, typename, typename> struct Guard;
+        template <typename, typename, typename> struct Action;
       };
       
       typedef List<M1, M2> Machines;
@@ -459,45 +459,51 @@ namespace CppMeta {
       };
       void (*Context::preempt)();
       
-      unsigned int transitions;
-      void push(int n) { transitions *= 10; transitions += n; }
+      unsigned int actions;
+      void push(int n) { actions *= 10; actions += n; }
       
       struct E1; struct E2; struct E3; struct E4; struct E5;
       
-      template <> struct M1::Transition<A, E1, AB> : NoTransitionGuard {
-        static void action() { push(1); }
-      };
-      template <> struct M1::Transition<A, E2, AC> : NoTransitionGuard {
-        static void action() { Post<Machines, Context, E3>()(); push(2); }
-      };
-      template <> struct M1::Transition<A, E4, AA> : NoTransitionGuard {
-        static void action() { push(3); }
-      };
+      // template <> struct M1::Action<A, E1, AB> { void operator()(); };
+      // template <> struct M1::Action<A, E2, AC> { void operator()(); };
+      // template <> struct M1::Action<A, E4, AA> { void operator()(); };
+      // template <> struct M2::Action<X, E1, XY> { void operator()(); };
+      // template <> struct M2::Action<X, E3, XZ> { void operator()(); };
+      // template <> struct M2::Action<X, E5, XX> { void operator()(); };
+      //   
+      // void M1::Action<A, E1, AB>::operator()() { push(1); }
+      // void M1::Action<A, E2, AC>::operator()() { Post<Machines, Context, E3>()(); push(2); }
+      // void M1::Action<A, E4, AA>::operator()() { push(3); }
+      // void M2::Action<X, E1, XY>::operator()() { push(5); }
+      // void M2::Action<X, E3, XZ>::operator()() { push(6); }
+      // void M2::Action<X, E5, XX>::operator()() { Post<Machines, Context, E4>()(); push(7); }
       
-      template <> struct M2::Transition<X, E1, XY> : NoTransitionGuard {
-        static void action() { push(5); }
-      };
-      template <> struct M2::Transition<X, E3, XZ> : NoTransitionGuard {
-        static void action() { push(6); }
-      };
-      template <> struct M2::Transition<X, E5, XX> : NoTransitionGuard {
-        static void action() { Post<Machines, Context, E4>()(); push(7); }
-      };
+      // TODO: forward declarations work OK but will be a problem for multiple machines in separate headers...
+      // (can we work around this by not full specializing? e.g. dummy template parameter? )
+      
+      // TODO: change enters and exits into class templates as per above!
+      
+      template <> struct M1::Action<A, E1, AB> { void operator()() { push(1); } };
+      template <> struct M1::Action<A, E2, AC> { void operator()() { Post<Machines, Context, E3>()(); push(2); } };
+      template <> struct M1::Action<A, E4, AA> { void operator()() { push(3); } };
+      template <> struct M2::Action<X, E1, XY> { void operator()() { push(5); } };
+      template <> struct M2::Action<X, E3, XZ> { void operator()() { push(6); } };
+      template <> struct M2::Action<X, E5, XX> { void operator()() { Post<Machines, Context, E4>()(); push(7); } };
       
       void test() {
         Scheduler::Initialise<Machines, Context>()();
         
-        transitions = 0;
+        actions = 0;
         Post<Machines, Context, E1>()();
-        assert(transitions == 15);
+        assert(actions == 15);
         
-        transitions = 0;
+        actions = 0;
         Post<Machines, Context, E2>()();
-        assert(transitions == 26);
+        assert(actions == 26);
         
-        transitions = 0;
+        actions = 0;
         Post<Machines, Context, E5>()();
-        assert(transitions == 37);
+        assert(actions == 37);
       }
     }
   }

@@ -11,9 +11,6 @@ namespace CppMeta {
     template <typename Machine>
     int CurrentState<Machine>::index = 0;
   
-    struct NoTransitionAction { static void action() { } };
-    struct NoTransitionGuard { static bool guard() { return true; } };
-  
     template <typename States> struct DefaultPath;
     template <typename State, typename FirstSubstate, typename... OtherSubstates>
     struct DefaultPath<Tree<State, FirstSubstate, OtherSubstates...>> {
@@ -55,53 +52,47 @@ namespace CppMeta {
         typename CurrentState<Machine>::template Set<FinalState>()();
       }
     };
-  
-    template <typename Machine, typename Source, typename Target>
+    
+    template <typename Machine, typename State, typename Event, typename Target> using HasGuard = HasBoolCallOperator<typename Machine::template Guard<State, Event, Target>>;
+    template <typename Machine, typename State, typename Event, typename Target> using HasAction = HasVoidCallOperator<typename Machine::template Action<State, Event, Target>>;
+    template <typename Machine, typename State, typename Event, typename Target> using HasTransition = Or<typename HasGuard<Machine, State, Event, Target>::Result, typename HasAction<Machine, State, Event, Target>::Result>;
+    
+    struct EmptyAction { void operator()() { } };
+    
+    template <typename Machine, typename Source, typename Event, typename Target>
     struct ChangeState {
       typedef typename CommonBranch<typename Machine::States, Source, Target>::Result Substates;
-      bool operator()(void (*action)()) {
+      typedef typename HasAction<Machine, Source, Event, Target>::Result Actioned;
+      typedef typename If<Actioned, typename Machine::template Action<Source, Event, Target>, EmptyAction>::Result Action;
+      bool operator()() {
         ExitStates<Machine, Substates>()();
-        action();
+        Action()();
         EnterStates<Machine, Substates, Target>()();
         return true;
       }
     };
-  
-    template <typename Transition>
-    struct TransitionIsImplemented {
-      struct Yes; struct No;
-      template <void (*)()> struct ActionSignature;
-      template <typename C> static Yes& test_action(ActionSignature<&C::action> *);
-      template <typename>   static No&  test_action(...);
-      template <bool (*)()> struct GuardSignature;
-      template <typename C> static Yes& test_guard(GuardSignature<&C::guard> *);
-      template <typename>   static No&  test_guard(...);
-      typedef typename Same<decltype(test_action<Transition>(0)), Yes&>::Result ActionPresent;
-      typedef typename Same<decltype(test_guard<Transition>(0)), Yes&>::Result GuardPresent;
-      typedef typename And<ActionPresent, GuardPresent>::Result Result;
-    };
-  
+    
     template <typename Machine, typename Event>
     struct Dispatch {
       typedef typename Machine::States States;
   
-      template <typename> struct TryTransition;
-      template <typename State, typename Target>
-      struct TryTransition<typename Machine::template Transition<State, Event, Target>> {
-        typedef TryTransition Result;
-        typedef typename Machine::template Transition<State, Event, Target> Trans;
-        bool operator()() { return Trans::guard() && ChangeState<Machine, State, Target>()(Trans::action); }
-      };
-    
       template <typename State>
       struct ClaimEvent {
+        template <typename Target>
+        struct TryTransition {
+          typedef TryTransition Result;
+          typedef typename HasGuard<Machine, State, Event, Target>::Result Guarded;
+          struct NoGuard { bool operator()() { return true; } };
+          typedef typename If<Guarded, typename Machine::template Guard<State, Event, Target>, NoGuard>::Result Guard;
+          bool operator()() { return Guard()() && ChangeState<Machine, State, Event, Target>()(); }
+        };
+      
         typedef ClaimEvent Result;
-        template <typename Target> struct GetTransition { typedef typename Machine::template Transition<State, Event, Target> Result; };
         template <typename State1, typename State2> using CloserThan = LessThan<typename Distance<States, State, State1>::Result, typename Distance<States, State, State2>::Result>;
-        typedef typename Map<typename Flatten<States>::Result, GetTransition>::Result PossibleTransitions;
-        typedef typename Select<PossibleTransitions, TransitionIsImplemented>::Result ImplementedTransitions;
-        typedef typename Sort<ImplementedTransitions, CloserThan>::Result SortedTransitions;
-        typedef typename Map<SortedTransitions, TryTransition>::Result TransitionSuccessful;
+        template <typename Target> using HasTransitionTo = HasTransition<Machine, State, Event, Target>;
+        typedef typename Select<typename Flatten<States>::Result, HasTransitionTo>::Result Targets;
+        typedef typename Sort<Targets, CloserThan>::Result SortedTargets;
+        typedef typename Map<SortedTargets, TryTransition>::Result TransitionSuccessful;
         bool operator()() { return Until<TransitionSuccessful>()(); }
       };
     
@@ -133,14 +124,14 @@ namespace CppMeta {
       typedef Initialise Result;
       void operator()() { EnterStates<Machine>()(); }
     };
-
+    
     template <typename Machine, typename Event>
     struct RespondsTo {
       typedef typename Flatten<typename Machine::States>::Result States;
       template <typename State>
       struct HasEventTransition {
-        template <typename Target> using StateHasEventTransitionTo = TransitionIsImplemented<typename Machine::template Transition<State, Event, Target>>;
-        typedef typename Any<typename Select<States, StateHasEventTransitionTo>::Result>::Result Result;
+        template <typename Target> using HasTransitionTo = HasTransition<Machine, State, Event, Target>;
+        typedef typename Any<typename Select<States, HasTransitionTo>::Result>::Result Result;
       };
       typedef typename Any<typename Select<States, HasEventTransition>::Result>::Result Result;
     };
