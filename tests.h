@@ -296,19 +296,19 @@ namespace CppMeta {
         static_assert(Same<DefaultPath<ActiveTree>::Result, List<Active, Stopped>>::Result::value, "failed");
         static_assert(Same<DefaultPath<PlayingTree>::Result, List<Playing, NormalSpeed>>::Result::value, "failed");
         
-        template <typename> static void enter() {}
-        template <typename> static void exit() {}
+        template <typename> struct Enter;
+        template <typename> struct Exit;
         template <typename, typename, typename> struct Guard;
         template <typename, typename, typename> struct Action;
       };
       
       bool standby_light = false;
-      template <> void VCR::enter<VCR::Standby>() { standby_light = true; }
-      template <> void VCR::exit<VCR::Standby>() { standby_light = false; }
+      template <> struct VCR::Enter<VCR::Standby> { void operator()() { standby_light = true; } };
+      template <> struct VCR::Exit<VCR::Standby> { void operator()() { standby_light = false; } };
       
       bool five_minute_timer_started = false;
-      template <> void VCR::enter<VCR::Paused>() { five_minute_timer_started = true; }
-      template <> void VCR::exit<VCR::Paused>() { five_minute_timer_started = false; }
+      template <> struct VCR::Enter<VCR::Paused> { void operator()() { five_minute_timer_started = true; } };
+      template <> struct VCR::Exit<VCR::Paused> { void operator()() { five_minute_timer_started = false; } };
       
       struct PowerButton; struct PlayButton; struct PauseButton; struct ForwardButton; struct StopButton;
       
@@ -434,8 +434,8 @@ namespace CppMeta {
       struct A; struct AA; struct AB; struct AC;
       struct M1 {
         typedef Tree<A, Tree<AA>, Tree<AB>, Tree<AC>> States;
-        template <typename> static void enter() { }
-        template <typename> static void exit() { }
+        template <typename> struct Enter;
+        template <typename> struct Exit;
         template <typename, typename, typename> struct Guard;
         template <typename, typename, typename> struct Action;
       };
@@ -443,8 +443,8 @@ namespace CppMeta {
       struct X; struct XX; struct XY; struct XZ;
       struct M2 {
         typedef Tree<X, Tree<XX>, Tree<XY>, Tree<XZ>> States;
-        template <typename> static void enter() { }
-        template <typename> static void exit() { }
+        template <typename> struct Enter;
+        template <typename> struct Exit;
         template <typename, typename, typename> struct Guard;
         template <typename, typename, typename> struct Action;
       };

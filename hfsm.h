@@ -21,14 +21,15 @@ namespace CppMeta {
   
     template <typename Machine, typename Substates>
     struct ExitStates {
-      template <typename State>
+      template <typename Candidate>
       struct ExitIfCurrent {
-        typedef typename SelfAndAncestors<Substates, State>::Result ExitPath;
-        template <typename OtherState> struct GetExit { typedef GetExit Result; void operator()() { Machine::template exit<OtherState>(); } };
-        typedef typename Map<ExitPath, GetExit>::Result Exits;
+        template <typename State> using HasExit = HasVoidCallOperator<typename Machine::template Exit<State>>;
+        template <typename State> struct GetExit { typedef GetExit Result; void operator()() { typename Machine::template Exit<State>()(); } };
+        typedef typename SelfAndAncestors<Substates, Candidate>::Result ExitPath;
+        typedef typename Map<typename Select<ExitPath, HasExit>::Result, GetExit>::Result Exits;
         typedef ExitIfCurrent Result;
         bool operator()() {
-          if (!typename CurrentState<Machine>::template Test<State>()()) return false;
+          if (!typename CurrentState<Machine>::template Test<Candidate>()()) return false;
           Each<Exits>()();
           return true;
         }
@@ -40,12 +41,12 @@ namespace CppMeta {
     
     template <typename Machine, typename Substates = typename Machine::States, typename Target = typename Root<Substates>::Result>
     struct EnterStates {
+      template <typename State> using HasEntry = HasVoidCallOperator<typename Machine::template Enter<State>>;
+      template <typename State> struct GetEntry { typedef GetEntry Result; void operator()() { typename Machine::template Enter<State>()(); } };
       typedef typename Reverse<typename Ancestors<Substates, Target>::Result>::Result TargetEntryPath;
       typedef typename DefaultPath<typename FindBranch<Substates, Target>::Result>::Result DefaultEntryPath;
       typedef typename Concat<TargetEntryPath, DefaultEntryPath>::Result EntryPath;
-      // TODO: change template <> enter to template class with operator()() ? (also for exits?)
-      template <typename State> struct GetEntry { typedef GetEntry Result; void operator()() { Machine::template enter<State>(); } };
-      typedef typename Map<EntryPath, GetEntry>::Result Entries;
+      typedef typename Map<typename Select<EntryPath, HasEntry>::Result, GetEntry>::Result Entries;
       typedef typename Last<EntryPath>::Result FinalState;
       void operator()() {
         Each<Entries>()();
@@ -62,8 +63,8 @@ namespace CppMeta {
     template <typename Machine, typename Source, typename Event, typename Target>
     struct ChangeState {
       typedef typename CommonBranch<typename Machine::States, Source, Target>::Result Substates;
-      typedef typename HasAction<Machine, Source, Event, Target>::Result Actioned;
-      typedef typename If<Actioned, typename Machine::template Action<Source, Event, Target>, EmptyAction>::Result Action;
+      typedef typename HasAction<Machine, Source, Event, Target>::Result ActionExists;
+      typedef typename If<ActionExists, typename Machine::template Action<Source, Event, Target>, EmptyAction>::Result Action;
       bool operator()() {
         ExitStates<Machine, Substates>()();
         Action()();
@@ -81,9 +82,9 @@ namespace CppMeta {
         template <typename Target>
         struct TryTransition {
           typedef TryTransition Result;
-          typedef typename HasGuard<Machine, State, Event, Target>::Result Guarded;
-          struct NoGuard { bool operator()() { return true; } };
-          typedef typename If<Guarded, typename Machine::template Guard<State, Event, Target>, NoGuard>::Result Guard;
+          typedef typename HasGuard<Machine, State, Event, Target>::Result GuardExists;
+          struct EmptyGuard { bool operator()() { return true; } };
+          typedef typename If<GuardExists, typename Machine::template Guard<State, Event, Target>, EmptyGuard>::Result Guard;
           bool operator()() { return Guard()() && ChangeState<Machine, State, Event, Target>()(); }
         };
       
