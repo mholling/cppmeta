@@ -1,5 +1,5 @@
-#include <cstdio>
 #include <assert.h>
+#include <cstdio>
 #include "meta.h"
 #include "list.h"
 #include "tree.h"

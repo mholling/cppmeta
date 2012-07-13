@@ -430,7 +430,75 @@ namespace CppMeta {
       }
     }
     namespace Scheduling {
-      void test() { } // TODO!
+      using namespace Scheduler;
+      using namespace HFSM;
+      
+      struct A; struct AA; struct AB; struct AC;
+      struct M1 {
+        typedef Tree<A, Tree<AA>, Tree<AB>, Tree<AC>> States;
+        template <typename> static void enter() { }
+        template <typename> static void exit() { }
+        template <typename, typename, typename> struct Transition;
+      };
+      
+      struct X; struct XX; struct XY; struct XZ;
+      struct M2 {
+        typedef Tree<X, Tree<XX>, Tree<XY>, Tree<XZ>> States;
+        template <typename> static void enter() { }
+        template <typename> static void exit() { }
+        template <typename, typename, typename> struct Transition;
+      };
+      
+      typedef List<M1, M2> Machines;
+      
+      struct Context {
+        static void (*preempt)();
+        static void prepare(void (*p)()) { preempt = p; }
+        static void push() { preempt(); }
+        static void pop() { }
+      };
+      void (*Context::preempt)();
+      
+      unsigned int transitions;
+      void push(int n) { transitions *= 10; transitions += n; }
+      
+      struct E1; struct E2; struct E3; struct E4; struct E5;
+      
+      template <> struct M1::Transition<A, E1, AB> : NoTransitionGuard {
+        static void action() { push(1); }
+      };
+      template <> struct M1::Transition<A, E2, AC> : NoTransitionGuard {
+        static void action() { Post<Machines, Context, E3>()(); push(2); }
+      };
+      template <> struct M1::Transition<A, E4, AA> : NoTransitionGuard {
+        static void action() { push(3); }
+      };
+      
+      template <> struct M2::Transition<X, E1, XY> : NoTransitionGuard {
+        static void action() { push(5); }
+      };
+      template <> struct M2::Transition<X, E3, XZ> : NoTransitionGuard {
+        static void action() { push(6); }
+      };
+      template <> struct M2::Transition<X, E5, XX> : NoTransitionGuard {
+        static void action() { Post<Machines, Context, E4>()(); push(7); }
+      };
+      
+      void test() {
+        Scheduler::Initialise<Machines, Context>()();
+        
+        transitions = 0;
+        Post<Machines, Context, E1>()();
+        assert(transitions == 15);
+        
+        transitions = 0;
+        Post<Machines, Context, E2>()();
+        assert(transitions == 26);
+        
+        transitions = 0;
+        Post<Machines, Context, E5>()();
+        assert(transitions == 37);
+      }
     }
   }
 }

@@ -2,17 +2,17 @@ namespace CppMeta {
   namespace Scheduler {
     template <typename Type>
     struct Node {
-      typedef Node *Next;
+      typedef Node *NodePtr;
       Type type;
-      Next next;
+      NodePtr next;
     
       Node(Type type) : type(type), next(0) { }
 
-      bool enqueue(Next &head) {
+      bool enqueue(NodePtr &head) {
         return head == this ? false : head != 0 ? enqueue(head->next) : (head = this, next = 0, true);
       }
 
-      static Node &dequeue(Next &head) {
+      static Node &dequeue(NodePtr &head) {
         Node &result = *head;
         head = head->next;
         result.next = 0;
@@ -25,8 +25,8 @@ namespace CppMeta {
     template <typename Machine>
     struct Queue {
       typedef Node<void (*const)()> NodeType;
-      typedef typename NodeType::Next Next;
-      static Next head;
+      typedef typename NodeType::NodePtr NodePtr;
+      static NodePtr head;
     
       template <typename Event>
       struct Dispatch {
@@ -41,7 +41,7 @@ namespace CppMeta {
       static void enqueue() { Dispatch<Event>::enqueue(); }
     };
     template <typename Machine>
-    typename Queue<Machine>::Next Queue<Machine>::head;
+    typename Queue<Machine>::NodePtr Queue<Machine>::head;
     template <typename Machine> template <typename Event>
     typename Queue<Machine>::NodeType Queue<Machine>::Dispatch<Event>::dispatch = HFSM::Dispatch<Machine, Event>::dispatch;
   
@@ -71,7 +71,7 @@ namespace CppMeta {
       }
     };
   
-    template <typename Machines, typename Event, typename Context>
+    template <typename Machines, typename Context, typename Event>
     struct Post {
       template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
       typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
