@@ -141,8 +141,8 @@ namespace CppMeta {
       struct NowTrue    { bool operator()() { count++; return true; } };
       struct TrueAgain  { bool operator()() { count++; return true; } };
       struct FinalFalse { bool operator()() { count++; return false; } };
-      typedef List<StartFalse, StillFalse, NowTrue, TrueAgain, FinalFalse> Success;
-      typedef List<StartFalse, StillFalse, FinalFalse> Failure;
+      typedef List<StartFalse, StillFalse, NowTrue, TrueAgain, FinalFalse> SomeSuccesses;
+      typedef List<StartFalse, StillFalse, FinalFalse> AllFailures;
       typedef List<NowTrue, TrueAgain, FinalFalse> SucceedTwiceThenFail;
       typedef List<NowTrue, TrueAgain> SucceedTwice;
       
@@ -154,11 +154,11 @@ namespace CppMeta {
 
         count = 0;
         bool result;
-        assert(result = Until<Success>()());
+        assert(result = Until<SomeSuccesses>()());
         assert(count == 3);
 
         count = 0;
-        assert(result = !Until<Failure>()());
+        assert(result = !Until<AllFailures>()());
         assert(count == 3);
 
         count = 0;
@@ -273,25 +273,23 @@ namespace CppMeta {
             struct Stopped;
             struct Playing;
               struct NormalSpeed;
-              struct FastForwarding;
-                struct DoubleSpeed;
-                struct QuadSpeed;
-                struct HighSpeed;
-              struct Rewinding;
+              struct DoubleSpeed;
+              struct QuadSpeed;
+              struct HighSpeed;
+            struct FastForwarding;
             struct Paused;
           struct Standby;
       
           typedef Tree<Standby> StandbyTree;
             typedef Tree<Stopped> StoppedTree;
               typedef Tree<NormalSpeed> NormalSpeedTree;
-                typedef Tree<DoubleSpeed> DoubleSpeedTree;
-                typedef Tree<QuadSpeed> QuadSpeedTree;
-                typedef Tree<HighSpeed> HighSpeedTree;
-              typedef Tree<FastForwarding, DoubleSpeedTree, QuadSpeedTree, HighSpeedTree> FastForwardingTree;
-              typedef Tree<Rewinding> RewindingTree;
-            typedef Tree<Playing, NormalSpeedTree, FastForwardingTree, RewindingTree> PlayingTree;
+              typedef Tree<DoubleSpeed> DoubleSpeedTree;
+              typedef Tree<QuadSpeed> QuadSpeedTree;
+              typedef Tree<HighSpeed> HighSpeedTree;
+            typedef Tree<Playing, NormalSpeedTree, DoubleSpeedTree, QuadSpeedTree, HighSpeedTree> PlayingTree;
+            typedef Tree<FastForwarding> FastForwardingTree;
             typedef Tree<Paused> PausedTree;
-          typedef Tree<Active, StoppedTree, PlayingTree, PausedTree> ActiveTree;
+          typedef Tree<Active, StoppedTree, PlayingTree, FastForwardingTree, PausedTree> ActiveTree;
         typedef Tree<PluggedIn, ActiveTree, StandbyTree> States;
         
         static_assert(Same<DefaultPath<States>::Result, List<PluggedIn, Active, Stopped>>::Result::value, "failed");
@@ -303,19 +301,46 @@ namespace CppMeta {
         template <typename, typename, typename> struct Transition;
       };
       
-      struct PowerButton; struct PlayButton; struct PauseButton; struct ForwardButton; struct ReverseButton; struct StopButton;
+      bool standby_light = false;
+      template <> void VCR::enter<VCR::Standby>() { standby_light = true; }
+      template <> void VCR::exit<VCR::Standby>() { standby_light = false; }
       
+      bool five_minute_timer_started = false;
+      template <> void VCR::enter<VCR::Paused>() { five_minute_timer_started = true; }
+      template <> void VCR::exit<VCR::Paused>() { five_minute_timer_started = false; }
+      
+      struct PowerButton; struct PlayButton; struct PauseButton; struct ForwardButton; struct StopButton;
+      
+      bool battery_is_flat = false;
+      bool startup_sound_played = false;
       template<> struct VCR::Transition<VCR::Active, PowerButton, VCR::Standby> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::Standby, PowerButton, VCR::Active> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::Stopped, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::FastForwarding, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
-      template<> struct VCR::Transition<VCR::Rewinding, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Standby, PowerButton, VCR::Active> : NoTransitionAction {
+        static bool guard() { return !battery_is_flat; }
+        static void action() { startup_sound_played = true; }
+      };
+      
+      template<> struct VCR::Transition<VCR::Active, PlayButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      
       template<> struct VCR::Transition<VCR::Playing, PauseButton, VCR::Paused> : NoTransitionAction, NoTransitionGuard { };
       template<> struct VCR::Transition<VCR::Paused, PauseButton, VCR::Playing> : NoTransitionAction, NoTransitionGuard { };
+      
       template<> struct VCR::Transition<VCR::NormalSpeed, ForwardButton, VCR::DoubleSpeed> : NoTransitionAction, NoTransitionGuard { };
       template<> struct VCR::Transition<VCR::DoubleSpeed, ForwardButton, VCR::QuadSpeed> : NoTransitionAction, NoTransitionGuard { };
       template<> struct VCR::Transition<VCR::QuadSpeed, ForwardButton, VCR::HighSpeed> : NoTransitionAction, NoTransitionGuard { };
       template<> struct VCR::Transition<VCR::HighSpeed, ForwardButton, VCR::DoubleSpeed> : NoTransitionAction, NoTransitionGuard { };
+      
+      template<> struct VCR::Transition<VCR::Stopped, ForwardButton, VCR::FastForwarding> : NoTransitionAction, NoTransitionGuard { };
+      
+      template<> struct VCR::Transition<VCR::Playing, StopButton, VCR::Stopped> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::FastForwarding, StopButton, VCR::Stopped> : NoTransitionAction, NoTransitionGuard { };
+      template<> struct VCR::Transition<VCR::Paused, StopButton, VCR::Stopped> : NoTransitionAction, NoTransitionGuard { };
+      
+      static_assert(RespondsTo<VCR, PowerButton>::Result::value, "failed");
+      static_assert(RespondsTo<VCR, PlayButton>::Result::value, "failed");
+      static_assert(RespondsTo<VCR, PauseButton>::Result::value, "failed");
+      static_assert(RespondsTo<VCR, ForwardButton>::Result::value, "failed");
+      static_assert(RespondsTo<VCR, StopButton>::Result::value, "failed");
+      static_assert(!RespondsTo<VCR, bool>::Result::value, "failed");
       
       void test() {
         bool test;
@@ -326,9 +351,13 @@ namespace CppMeta {
         
         Dispatch<VCR, PowerButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::Standby>()());
+        assert(standby_light);
         
+        startup_sound_played = false;
         Dispatch<VCR, PowerButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        assert(!standby_light);
+        assert(startup_sound_played);
         
         Dispatch<VCR, PlayButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
@@ -350,9 +379,11 @@ namespace CppMeta {
         
         Dispatch<VCR, PauseButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::Paused>()());
+        assert(five_minute_timer_started);
         
         Dispatch<VCR, PauseButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
+        assert(!five_minute_timer_started);
         
         Dispatch<VCR, ForwardButton>()();
         Dispatch<VCR, ForwardButton>()();
@@ -361,9 +392,41 @@ namespace CppMeta {
         
         Dispatch<VCR, PowerButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::Standby>()());
+        assert(standby_light);
         
+        startup_sound_played = false;
         Dispatch<VCR, PowerButton>()();
         assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        assert(!standby_light);
+        assert(startup_sound_played);
+        
+        Dispatch<VCR, ForwardButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::FastForwarding>()());
+        
+        Dispatch<VCR, StopButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        
+        Dispatch<VCR, PlayButton>()();
+        Dispatch<VCR, StopButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        
+        Dispatch<VCR, ForwardButton>()();
+        Dispatch<VCR, PlayButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::NormalSpeed>()());
+        
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Standby>()());
+        
+        startup_sound_played = false;
+        battery_is_flat = true;
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Standby>()());
+        assert(!startup_sound_played);
+        
+        battery_is_flat = false;
+        Dispatch<VCR, PowerButton>()();
+        assert(test = CurrentState<VCR>::Test<VCR::Stopped>()());
+        assert(startup_sound_played);
       }
     }
     namespace Scheduling {
