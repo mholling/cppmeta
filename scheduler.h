@@ -94,6 +94,21 @@ namespace CppMeta {
         PushContextIfNeeded()();
       }
     };
+    
+    // template <typename Machines, typename Context, typename Event>
+    // struct Post {
+    //   template <typename Machine>
+    //   struct PostEvent {
+    //     typedef PostEvent Result;
+    //     void operator()() { Queue<Machine>::template enqueue<Event>(); }
+    //   };
+    //   typedef typename Map<Machines, PostEvent>::Result PostsToMachines;
+    //   void operator()() {
+    //     Each<PostsToMachines>()();
+    //     Context::push();
+    //   }
+    // };
+    
     // // Example Context class for Cortex M3:
     //
     // struct Context {

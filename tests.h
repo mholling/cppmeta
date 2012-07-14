@@ -479,9 +479,8 @@ namespace CppMeta {
       // void M2::Action<X, E5, XX>::operator()() { Post<Machines, Context, E4>()(); push(7); }
       
       // TODO: forward declarations work OK but will be a problem for multiple machines in separate headers...
-      // (can we work around this by not full specializing? e.g. dummy template parameter? )
-      
-      // TODO: change enters and exits into class templates as per above!
+      // (Work around by removing RespondsTo filtering in template <> Post, at the expense of having one node
+      // for every Machine/Event pair... Alternately, have each machine manually declare the events it wants. )
       
       template <> struct M1::Action<A, E1, AB> { void operator()() { push(1); } };
       template <> struct M1::Action<A, E2, AC> { void operator()() { Post<Machines, Context, E3>()(); push(2); } };
