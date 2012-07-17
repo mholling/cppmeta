@@ -24,13 +24,12 @@ namespace CppMeta {
       template <typename Candidate>
       struct ExitIfCurrent {
         template <typename State> using HasExit = HasVoidCallOperator<typename Machine::template Exit<Post, State>>;
-        template <typename State> struct GetExit { typedef GetExit Result; void operator()() { typename Machine::template Exit<Post, State>()(); } };
+        template <typename State> struct Exit { typedef Exit Result; void operator()() { typename Machine::template Exit<Post, State>()(); } };
         typedef typename SelfAndAncestors<Substates, Candidate>::Result ExitPath;
-        typedef typename Map<typename Select<ExitPath, HasExit>::Result, GetExit>::Result Exits;
         typedef ExitIfCurrent Result;
         bool operator()() {
           if (!typename CurrentState<Machine>::template Test<Candidate>()()) return false;
-          Each<Exits>()();
+          Each<typename Select<ExitPath, HasExit>::Result, Exit>()();
           return true;
         }
       };
@@ -42,14 +41,13 @@ namespace CppMeta {
     template <template <typename> class Post, typename Machine, typename Substates = typename Machine::States, typename Target = typename Root<Substates>::Result>
     struct EnterStates {
       template <typename State> using HasEntry = HasVoidCallOperator<typename Machine::template Enter<Post, State>>;
-      template <typename State> struct GetEntry { typedef GetEntry Result; void operator()() { typename Machine::template Enter<Post, State>()(); } };
+      template <typename State> struct Enter { typedef Enter Result; void operator()() { typename Machine::template Enter<Post, State>()(); } };
       typedef typename Reverse<typename Ancestors<Substates, Target>::Result>::Result TargetEntryPath;
       typedef typename DefaultPath<typename FindBranch<Substates, Target>::Result>::Result DefaultEntryPath;
       typedef typename Concat<TargetEntryPath, DefaultEntryPath>::Result EntryPath;
-      typedef typename Map<typename Select<EntryPath, HasEntry>::Result, GetEntry>::Result Entries;
       typedef typename Last<EntryPath>::Result FinalState;
       void operator()() {
-        Each<Entries>()();
+        Each<typename Select<EntryPath, HasEntry>::Result, Enter>()();
         typename CurrentState<Machine>::template Set<FinalState>()();
       }
     };

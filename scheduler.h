@@ -15,7 +15,6 @@ namespace CppMeta {
     
       template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
       typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
-      typedef typename Map<RespondingMachines, PostEvent>::Result PostsToMachines;
     
       struct DoNothing { void operator()() { } };
       struct PushContext { void operator()() { Context::push(); } };
@@ -23,7 +22,7 @@ namespace CppMeta {
       typedef typename If<PushContextNeeded, PushContext, DoNothing>::Result PushContextIfNeeded;
     
       void operator()() {
-        Each<PostsToMachines>()();
+        Each<RespondingMachines, PostEvent>()();
         PushContextIfNeeded()();
       }
     };
@@ -41,9 +40,8 @@ namespace CppMeta {
           while (Dispatchers<Context, Machines, Machine>::any()) { Dispatchers<Context, Machines, Machine>::dequeue()(); }
         }
       };
-      typedef typename Map<MachinesToRun, RunMachine>::Result MachineRunners;
       void operator()() {
-        Each<MachineRunners>()();
+        Each<MachinesToRun, RunMachine>()();
         Context::prepare(run<Context, Machines, MachinesToRun>);
         Context::pop();
       }
@@ -55,11 +53,10 @@ namespace CppMeta {
     template <typename Context, typename Machines>
     struct Initialise {
       template <typename Event> using Post = Scheduler::Post<Context, Machines, Event>;
-      template <typename Machine> using GetInitialiser = HFSM::Initialise<Post, Machine>;
-      typedef typename Map<Machines, GetInitialiser>::Result Initialisers;
+      template <typename Machine> using RunInitialiser = HFSM::Initialise<Post, Machine>;
       void operator()() {
         Context::prepare(run<Context, Machines, Machines>);
-        Each<Initialisers>()();
+        Each<Machines, RunInitialiser>()();
       }
     };
     

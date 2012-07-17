@@ -135,6 +135,20 @@ namespace CppMeta {
       struct SetZ { void operator()(int v) { z = v; } };
       typedef List<SetX, SetY, SetZ> Setters;
       
+      bool a[4] = { false };
+      template <typename I>
+      struct SetA {
+        typedef SetA Result;
+        void operator()() { a[I::value] = true; }
+      };
+      
+      template <typename I>
+      struct GetA {
+        typedef GetA Result;
+        bool operator()() { return a[I::value]; }
+      };
+      
+      
       int count;
       struct StartFalse { bool operator()() { count++; return false; } };
       struct StillFalse { bool operator()() { count++; return false; } };
@@ -148,26 +162,39 @@ namespace CppMeta {
       
       void test() {
         Each<List<SetX, SetY, SetZ>>()(10);
-        assert(x == 10);
-        assert(y == 10);
-        assert(z == 10);
-
+        assert(x == 10 && y == 10 && z == 10);
+        
+        Each<List<Int<1>, Int<3>>, SetA>()();
+        assert(!a[0] && a[1] && !a[2] && a[3]);
+        
         count = 0;
         bool result;
         assert(result = Until<SomeSuccesses>()());
         assert(count == 3);
-
+        
         count = 0;
         assert(result = !Until<AllFailures>()());
         assert(count == 3);
-
+        
+        result = Until<List<Int<0>, Int<1>, Int<2>, Int<3>>, GetA>()();
+        assert(result);
+        
+        result = !Until<List<Int<0>, Int<2>>, GetA>()();
+        assert(result);
+        
         count = 0;
         assert(result = While<SucceedTwice>()());
         assert(count == 2);
-
+        
         count = 0;
         assert(result = !While<SucceedTwiceThenFail>()());
         assert(count == 3);
+        
+        result = While<List<Int<1>, Int<3>>, GetA>()();
+        assert(result);
+        
+        result = !While<List<Int<1>, Int<2>>, GetA>()();
+        assert(result);
       }
     };
     namespace Trees {
@@ -265,7 +292,30 @@ namespace CppMeta {
       static_assert(Same<Distance<TreeA, ADAB, ABB>::Result, Int<5>>::Result::value, "failed");
     }
     namespace Queues {
-      void test() {} // TODO: write some tests for queues
+      struct Owner; struct OtherOwner;
+      typedef Queue::Head<int, Owner> Ints;
+      typedef Queue::Head<int, OtherOwner> OtherInts;
+      
+      void test() {
+        assert(!Ints::any());
+        assert(Ints::Enqueue<5>()());
+        assert(Ints::Enqueue<1>()());
+        assert(Ints::Enqueue<3>()());
+        assert(Ints::any());
+        
+        assert(Ints::dequeue() == 5);
+        assert(Ints::dequeue() == 1);
+        assert(Ints::Enqueue<5>()());
+        assert(Ints::dequeue() == 3);
+        assert(Ints::dequeue() == 5);
+        assert(!Ints::any());
+        
+        assert(Ints::Enqueue<2>()());
+        assert(!Ints::Enqueue<2>()());
+        
+        assert(Ints::any());
+        assert(!OtherInts::any());
+      }
     }
     namespace HFSMs {
       struct VCR {

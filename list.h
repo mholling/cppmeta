@@ -167,38 +167,38 @@ namespace CppMeta {
   template <typename L> using Max = InjectFirst<L, GreaterOf>;
   template <typename L> using Min = InjectFirst<L, LesserOf>;
   
-  template <typename L> struct Each;
-  template <typename Head, typename... Tail>
-  struct Each<List<Head, Tail...>> {
+  template <typename L, template <typename> class Function = Self> struct Each;
+  template <typename Head, typename... Tail, template <typename> class Function>
+  struct Each<List<Head, Tail...>, Function> {
     template <typename... Args>
-    void operator ()(Args... args) { Head()(args...); Each<List<Tail...>>()(args...); }
+    void operator ()(Args... args) { typename Function<Head>::Result()(args...); Each<List<Tail...>, Function>()(args...); }
   };
-  template <>
-  struct Each<List<>> {
+  template <template <typename> class Function>
+  struct Each<List<>, Function> {
     template <typename... Args>
     void operator ()(Args... args) { }
   };
   
-  template <typename L> struct While;
-  template <typename Head, typename... Tail>
-  struct While<List<Head, Tail...>> {
+  template <typename L, template <typename> class Function = Self> struct While;
+  template <typename Head, typename... Tail, template <typename> class Function>
+  struct While<List<Head, Tail...>, Function> {
     template <typename... Args>
-    bool operator ()(Args... args) { return Head()(args...) && While<List<Tail...>>()(args...); }
+    bool operator ()(Args... args) { return typename Function<Head>::Result()(args...) && While<List<Tail...>, Function>()(args...); }
   };
-  template <>
-  struct While<List<>> {
+  template <template <typename> class Function>
+  struct While<List<>, Function> {
     template <typename... Args>
     bool operator ()(Args... args) { return true; }
   };
   
-  template <typename L> struct Until;
-  template <typename Head, typename... Tail>
-  struct Until<List<Head, Tail...>> {
+  template <typename L, template <typename> class Function = Self> struct Until;
+  template <typename Head, typename... Tail, template <typename> class Function>
+  struct Until<List<Head, Tail...>, Function> {
     template <typename... Args>
-    bool operator ()(Args... args) { return Head()(args...) || Until<List<Tail...>>()(args...); }
+    bool operator ()(Args... args) { return typename Function<Head>::Result()(args...) || Until<List<Tail...>, Function>()(args...); }
   };
-  template <>
-  struct Until<List<>> {
+  template <template <typename> class Function>
+  struct Until<List<>, Function> {
     template <typename... Args>
     bool operator ()(Args... args) { return false; }
   };
