@@ -1,64 +1,20 @@
 namespace CppMeta {
   namespace Scheduler {
-    template <typename Type>
-    struct Node { // TODO: extract Queue/Node into stand-alone template class
-      typedef Node *NodePtr;
-      Type type;
-      NodePtr next;
+    typedef void (*Dispatcher)();
+    template <typename Context, typename Machines, typename Machine> using Dispatchers = Queue::Head<Dispatcher, Context, Machines, Machine>;
     
-      Node(Type type) : type(type), next(0) { }
-
-      bool enqueue(NodePtr &head) {
-        return head == this ? false : head != 0 ? enqueue(head->next) : (head = this, next = 0, true);
-      }
-
-      static Node &dequeue(NodePtr &head) {
-        Node &result = *head;
-        head = head->next;
-        result.next = 0;
-        return result;
-      }
-    
-      Type operator()() { return type; }
-    };
-    
-    template <typename Context, typename Machines, typename Event> struct Post;
-    
-    template <typename Context, typename Machines, typename Machine>
-    struct Queue {
-      typedef Node<void (*const)()> NodeType;
-      typedef typename NodeType::NodePtr NodePtr;
-      static NodePtr head;
-      
-      template <typename Event> using Post = Scheduler::Post<Context, Machines, Event>;
-    
-      template <typename Event>
-      struct Dispatch {
-        static NodeType dispatch;
-        static void enqueue() { dispatch.enqueue(head); }
-      };
-    
-      static bool any() { return head != 0; }
-      static void dispatch() { NodeType::dequeue(head)()(); }
-      template <typename Event>
-      static void enqueue() { Dispatch<Event>::enqueue(); }
-    };
-    template <typename Context, typename Machines, typename Machine>
-    typename Queue<Context, Machines, Machine>::NodePtr Queue<Context, Machines, Machine>::head;
-    template <typename Context, typename Machines, typename Machine> template <typename Event>
-    typename Queue<Context, Machines, Machine>::NodeType Queue<Context, Machines, Machine>::Dispatch<Event>::dispatch = HFSM::Dispatch<Queue<Context, Machines, Machine>::template Post, Machine, Event>::dispatch;
-  
     template <typename Context, typename Machines, typename Event>
     struct Post {
-      template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
-      typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
+      template <typename OtherEvent> using Poster = Post<Context, Machines, OtherEvent>;
       
       template <typename Machine>
       struct PostEvent {
-        typedef PostEvent Result;
-        void operator()() { Queue<Context, Machines, Machine>::template enqueue<Event>(); }
+        typedef Dispatchers<Context, Machines, Machine> Events;
+        typedef typename Events::template Enqueue<HFSM::dispatch<Poster, Machine, Event>> Result;
       };
     
+      template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
+      typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
       typedef typename Map<RespondingMachines, PostEvent>::Result PostsToMachines;
     
       struct DoNothing { void operator()() { } };
@@ -72,6 +28,8 @@ namespace CppMeta {
       }
     };
     
+    template <typename Context, typename Machines, typename MachinesToRun> void run();
+    
     template <typename Context, typename Machines, typename MachinesToRun>
     struct Run {
       template <typename Machine>
@@ -79,17 +37,20 @@ namespace CppMeta {
         typedef RunMachine Result;
         typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
         void operator()() {
-          Context::prepare(Run<Context, Machines, PreemptingMachines>::run);
-          while (Queue<Context, Machines, Machine>::any()) { Queue<Context, Machines, Machine>::dispatch(); }
+          Context::prepare(run<Context, Machines, PreemptingMachines>);
+          while (Dispatchers<Context, Machines, Machine>::any()) { Dispatchers<Context, Machines, Machine>::dequeue()(); }
         }
       };
       typedef typename Map<MachinesToRun, RunMachine>::Result MachineRunners;
-      static void run() {
+      void operator()() {
         Each<MachineRunners>()();
-        Context::prepare(Run<Context, Machines, MachinesToRun>::run);
+        Context::prepare(run<Context, Machines, MachinesToRun>);
         Context::pop();
       }
     };
+    
+    template <typename Context, typename Machines, typename MachinesToRun>
+    void run() { Run<Context, Machines, MachinesToRun>()(); }
     
     template <typename Context, typename Machines>
     struct Initialise {
@@ -97,7 +58,7 @@ namespace CppMeta {
       template <typename Machine> using GetInitialiser = HFSM::Initialise<Post, Machine>;
       typedef typename Map<Machines, GetInitialiser>::Result Initialisers;
       void operator()() {
-        Context::prepare(Run<Context, Machines, Machines>::run);
+        Context::prepare(run<Context, Machines, Machines>);
         Each<Initialisers>()();
       }
     };

@@ -264,6 +264,9 @@ namespace CppMeta {
       static_assert(Same<Distance<TreeA, ABA, ABC>::Result, Int<2>>::Result::value, "failed");
       static_assert(Same<Distance<TreeA, ADAB, ABB>::Result, Int<5>>::Result::value, "failed");
     }
+    namespace Queues {
+      void test() {} // TODO: write some tests for queues
+    }
     namespace HFSMs {
       struct VCR {
         struct PluggedIn;

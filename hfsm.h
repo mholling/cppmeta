@@ -120,9 +120,13 @@ namespace CppMeta {
       typedef typename Leaves<States>::Result LeafStates;
       typedef typename Map<LeafStates, DispatchIfCurrent>::Result Dispatched;
       void operator()() { Until<Dispatched>()(); }
-      static void dispatch() { Dispatch()(); }
     };
-  
+    
+    namespace {
+      template <template <typename> class Post, typename Machine, typename Event>
+      void dispatch() { Dispatch<Post, Machine, Event>()(); }
+    }
+    
     template <template <typename> class Post, typename Machine>
     struct Initialise {
       typedef Initialise Result;
@@ -132,10 +136,10 @@ namespace CppMeta {
     template <typename Machine, typename Event>
     struct RespondsTo {
       typedef typename Flatten<typename Machine::States>::Result States;
-      template <typename> class Post;
+      template <typename> struct DummyPost { void operator()() { }; };
       template <typename State>
       struct HasEventTransition {
-        template <typename Target> using HasTransitionTo = HasTransition<Post, Machine, State, Event, Target>;
+        template <typename Target> using HasTransitionTo = HasTransition<DummyPost, Machine, State, Event, Target>;
         typedef typename Any<typename Select<States, HasTransitionTo>::Result>::Result Result;
       };
       typedef typename Any<typename Select<States, HasEventTransition>::Result>::Result Result;
