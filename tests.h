@@ -292,29 +292,31 @@ namespace CppMeta {
       static_assert(Same<Distance<TreeA, ADAB, ABB>::Result, Int<5>>::Result::value, "failed");
     }
     namespace Queues {
-      struct Owner; struct OtherOwner;
+      struct Owner; struct Owner2;
       typedef Queue::Head<int, Owner> Ints;
-      typedef Queue::Head<int, OtherOwner> OtherInts;
+      typedef Queue::Head<int, Owner2> Ints2;
       
       void test() {
-        assert(!Ints::any());
-        assert(Ints::Enqueue<5>()());
-        assert(Ints::Enqueue<1>()());
-        assert(Ints::Enqueue<3>()());
-        assert(Ints::any());
+        bool result;
         
-        assert(Ints::dequeue() == 5);
-        assert(Ints::dequeue() == 1);
-        assert(Ints::Enqueue<5>()());
-        assert(Ints::dequeue() == 3);
-        assert(Ints::dequeue() == 5);
-        assert(!Ints::any());
+        assert(result = !Ints::any());
+        assert(result = Ints::Enqueue<5>()());
+        assert(result = Ints::Enqueue<1>()());
+        assert(result = Ints::Enqueue<3>()());
+        assert(result = Ints::any());
         
-        assert(Ints::Enqueue<2>()());
-        assert(!Ints::Enqueue<2>()());
+        assert(result = Ints::dequeue() == 5);
+        assert(result = Ints::dequeue() == 1);
+        assert(result = Ints::Enqueue<5>()());
+        assert(result = Ints::dequeue() == 3);
+        assert(result = Ints::dequeue() == 5);
+        assert(result = !Ints::any());
         
-        assert(Ints::any());
-        assert(!OtherInts::any());
+        assert(result = Ints::Enqueue<2>()());
+        assert(result = !Ints::Enqueue<2>()());
+        
+        assert(result = Ints::any());
+        assert(result = !Ints2::any());
       }
     }
     namespace HFSMs {
