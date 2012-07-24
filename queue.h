@@ -19,7 +19,7 @@ namespace CppMeta {
       }
     };
     
-    template <typename Type, typename... Owner>
+    template <typename Owner, typename Type>
     struct Head {
       static typename Node<Type>::Pointer head;
       
@@ -35,9 +35,9 @@ namespace CppMeta {
       static bool enqueue() { return Enqueue<t>()(); }
     };
     
-    template <typename Type, typename... Owner>
-    typename Node<Type>::Pointer Head<Type, Owner...>::head = nullptr;
-    template <typename Type, typename... Owner> template <Type t>
-    Node<Type> Head<Type, Owner...>::Enqueue<t>::node(t);
+    template <typename Owner, typename Type>
+    typename Node<Type>::Pointer Head<Owner, Type>::head = nullptr;
+    template <typename Owner, typename Type> template <Type t>
+    Node<Type> Head<Owner, Type>::Enqueue<t>::node(t);
   }
 }

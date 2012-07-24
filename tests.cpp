@@ -6,13 +6,15 @@
 #include "queue.h"
 #include "hfsm.h"
 #include "scheduler.h"
+#include "os.h"
 #include "tests.h"
 
 using namespace CppMeta::Tests;
 
 int main() {
-  Lists::test();
-  Queues::test();
-  HFSMs::test();
-  Scheduling::test();
+  ForLists::test();
+  ForQueues::test();
+  ForHFSMs::test();
+  ForScheduler::test();
+  ForOS::test();
 }

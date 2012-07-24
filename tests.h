@@ -64,7 +64,7 @@ namespace CppMeta {
       static_assert(!HasBoolCallOperator<VoidReturn>::Result::value, "failed");
       static_assert( HasBoolCallOperator<BoolReturn>::Result::value, "failed");
     }
-    namespace Lists {
+    namespace ForLists {
       static_assert(IsList<List<int, char>>::Result::value, "failed");
       static_assert(!IsList<int>::Result::value, "failed");
 
@@ -197,7 +197,7 @@ namespace CppMeta {
         assert(result);
       }
     };
-    namespace Trees {
+    namespace ForTrees {
       struct A; struct AA; struct AB; struct AC; struct AD; struct AAA; struct AAB; struct ABA; struct ABB; struct ABC; struct ADA; struct ADB; struct ADAA; struct ADAB;
       
           typedef Tree<AAA> TreeAAA;
@@ -291,10 +291,10 @@ namespace CppMeta {
       static_assert(Same<Distance<TreeA, ABA, ABC>::Result, Int<2>>::Result::value, "failed");
       static_assert(Same<Distance<TreeA, ADAB, ABB>::Result, Int<5>>::Result::value, "failed");
     }
-    namespace Queues {
+    namespace ForQueues {
       struct Owner; struct Owner2;
-      typedef Queue::Head<int, Owner> Ints;
-      typedef Queue::Head<int, Owner2> Ints2;
+      typedef Queue::Head<Owner, int> Ints;
+      typedef Queue::Head<Owner2, int> Ints2;
       
       void test() {
         bool result;
@@ -319,7 +319,7 @@ namespace CppMeta {
         assert(result = !Ints2::any());
       }
     }
-    namespace HFSMs {
+    namespace ForHFSMs {
       struct VCR {
         struct PluggedIn;
           struct Active;
@@ -349,42 +349,38 @@ namespace CppMeta {
         static_assert(Same<HFSM::DefaultPath<ActiveTree>::Result, List<Active, Stopped>>::Result::value, "failed");
         static_assert(Same<HFSM::DefaultPath<PlayingTree>::Result, List<Playing, NormalSpeed>>::Result::value, "failed");
         
-        template <template <typename> class, typename> struct Enter;
-        template <template <typename> class, typename> struct Exit;
-        template <template <typename> class, typename, typename, typename> struct Guard;
-        template <template <typename> class, typename, typename, typename> struct Action;
+        template <typename, typename> struct Enter;
+        template <typename, typename> struct Exit;
+        template <typename, typename, typename, typename> struct Guard;
+        template <typename, typename, typename, typename> struct Action;
       };
       
       struct EnteringStandby; struct LeavingStandby; struct EnteringPause; struct LeavingPause;
       
-      template <template <typename> class Post> struct VCR::Enter<Post, VCR::Standby> { void operator()() { Post<EnteringStandby>()(); } };
-      template <template <typename> class Post> struct VCR::Exit<Post, VCR::Standby> { void operator()() { Post<LeavingStandby>()(); } };
+      template <typename Kernel> struct VCR::Enter<Kernel, VCR::Standby> { void operator()() { Kernel::template post<EnteringStandby>(); } };
+      template <typename Kernel> struct VCR::Exit<Kernel, VCR::Standby> { void operator()() { Kernel::template post<LeavingStandby>(); } };
       
-      template <template <typename> class Post> struct VCR::Enter<Post, VCR::Paused> { void operator()() { Post<EnteringPause>()(); } };
-      template <template <typename> class Post> struct VCR::Exit<Post, VCR::Paused> { void operator()() { Post<LeavingPause>()(); } };
+      template <typename Kernel> struct VCR::Enter<Kernel, VCR::Paused> { void operator()() { Kernel::template post<EnteringPause>(); } };
+      template <typename Kernel> struct VCR::Exit<Kernel, VCR::Paused> { void operator()() { Kernel::template post<LeavingPause>(); } };
       
       struct PowerButton; struct PlayButton; struct PauseButton; struct ForwardButton; struct StopButton;
       
       struct Activating;
       bool battery_is_flat = false;
-      template<template <typename> class Post> struct VCR::Action<Post, VCR::Active, PowerButton, VCR::Standby> { void operator()() { } };
-      template<template <typename> class Post> struct VCR::Guard<Post, VCR::Standby, PowerButton, VCR::Active> {
-        bool operator()() { return !battery_is_flat; }
-      };
-      template<template <typename> class Post> struct VCR::Action<Post, VCR::Standby, PowerButton, VCR::Active> {
-        void operator()() { Post<Activating>()(); }
-      };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::Active, PlayButton, VCR::Playing> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::Playing, PauseButton, VCR::Paused> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::Paused, PauseButton, VCR::Playing> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::NormalSpeed, ForwardButton, VCR::DoubleSpeed> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::DoubleSpeed, ForwardButton, VCR::QuadSpeed> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::QuadSpeed, ForwardButton, VCR::HighSpeed> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::HighSpeed, ForwardButton, VCR::DoubleSpeed> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::Stopped, ForwardButton, VCR::FastForwarding> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::Playing, StopButton, VCR::Stopped> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::FastForwarding, StopButton, VCR::Stopped> { void operator()() { } };
-      template <template <typename> class Post> struct VCR::Action<Post, VCR::Paused, StopButton, VCR::Stopped> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Active, PowerButton, VCR::Standby> { void operator()() { } };
+      template <typename Kernel> struct VCR::Guard<Kernel, VCR::Standby, PowerButton, VCR::Active> { bool operator()() { return !battery_is_flat; } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Standby, PowerButton, VCR::Active> { void operator()() { Kernel::template post<Activating>(); } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Active, PlayButton, VCR::Playing> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Playing, PauseButton, VCR::Paused> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Paused, PauseButton, VCR::Playing> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::NormalSpeed, ForwardButton, VCR::DoubleSpeed> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::DoubleSpeed, ForwardButton, VCR::QuadSpeed> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::QuadSpeed, ForwardButton, VCR::HighSpeed> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::HighSpeed, ForwardButton, VCR::DoubleSpeed> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Stopped, ForwardButton, VCR::FastForwarding> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Playing, StopButton, VCR::Stopped> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::FastForwarding, StopButton, VCR::Stopped> { void operator()() { } };
+      template <typename Kernel> struct VCR::Action<Kernel, VCR::Paused, StopButton, VCR::Stopped> { void operator()() { } };
       
       static_assert(HFSM::RespondsTo<VCR, PowerButton>::Result::value, "failed");
       static_assert(HFSM::RespondsTo<VCR, PlayButton>::Result::value, "failed");
@@ -393,105 +389,105 @@ namespace CppMeta {
       static_assert(HFSM::RespondsTo<VCR, StopButton>::Result::value, "failed");
       static_assert(!HFSM::RespondsTo<VCR, bool>::Result::value, "failed");
       
-      template <typename> struct Post;
+      struct Kernel { template <typename Event> static void post() { } };
       
       bool entering_standby, leaving_standby, entering_pause, leaving_pause, activating;
-      template <> struct Post<EnteringStandby> { void operator()() { entering_standby = true; } };
-      template <> struct Post<LeavingStandby> { void operator()() { leaving_standby = true; } };
-      template <> struct Post<EnteringPause> { void operator()() { entering_pause = true; } };
-      template <> struct Post<LeavingPause> { void operator()() { leaving_pause = true; } };
-      template <> struct Post<Activating> { void operator()() { activating = true; } };
+      template <> void Kernel::post<EnteringStandby>() { entering_standby = true; }
+      template <> void Kernel::post<LeavingStandby>() { leaving_standby = true; }
+      template <> void Kernel::post<EnteringPause>() { entering_pause = true; }
+      template <> void Kernel::post<LeavingPause>() { leaving_pause = true; }
+      template <> void Kernel::post<Activating>() { activating = true; }
       
       void test() {
         bool test;
         
-        HFSM::Initialise<Post, VCR>()();
+        HFSM::Initialise<Kernel, VCR>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         assert(test = !HFSM::CurrentState<VCR>::Test<VCR::Paused>()());
         
         entering_standby = false;
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Standby>()());
         assert(entering_standby);
         
         activating = leaving_standby = false;
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         assert(activating && leaving_standby);
         
-        HFSM::Dispatch<Post, VCR, PlayButton>()();
+        HFSM::Dispatch<Kernel, VCR, PlayButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::NormalSpeed>()());
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::DoubleSpeed>()());
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::QuadSpeed>()());
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::HighSpeed>()());
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::DoubleSpeed>()());
         
-        HFSM::Dispatch<Post, VCR, PlayButton>()();
+        HFSM::Dispatch<Kernel, VCR, PlayButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::NormalSpeed>()());
         
         entering_pause = false;
-        HFSM::Dispatch<Post, VCR, PauseButton>()();
+        HFSM::Dispatch<Kernel, VCR, PauseButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Paused>()());
         assert(entering_pause);
         
         leaving_pause = false;
-        HFSM::Dispatch<Post, VCR, PauseButton>()();
+        HFSM::Dispatch<Kernel, VCR, PauseButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::NormalSpeed>()());
         assert(leaving_pause);
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
-        HFSM::Dispatch<Post, VCR, PlayButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, PlayButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::NormalSpeed>()());
         
         entering_standby = false;
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Standby>()());
         assert(entering_standby);
         
         leaving_standby = activating = false;
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         assert(leaving_standby && activating);
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::FastForwarding>()());
         
-        HFSM::Dispatch<Post, VCR, StopButton>()();
+        HFSM::Dispatch<Kernel, VCR, StopButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         
-        HFSM::Dispatch<Post, VCR, PlayButton>()();
-        HFSM::Dispatch<Post, VCR, StopButton>()();
+        HFSM::Dispatch<Kernel, VCR, PlayButton>()();
+        HFSM::Dispatch<Kernel, VCR, StopButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         
-        HFSM::Dispatch<Post, VCR, ForwardButton>()();
-        HFSM::Dispatch<Post, VCR, PlayButton>()();
+        HFSM::Dispatch<Kernel, VCR, ForwardButton>()();
+        HFSM::Dispatch<Kernel, VCR, PlayButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::NormalSpeed>()());
         
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Standby>()());
         
         activating = false;
         battery_is_flat = true;
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Standby>()());
         assert(!activating);
         
         battery_is_flat = false;
-        HFSM::Dispatch<Post, VCR, PowerButton>()();
+        HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         assert(activating);
       }
     }
-    namespace Scheduling {
+    namespace ForScheduler {
       unsigned int actions;
       void action(int n) { actions *= 10; actions += n; }
       
@@ -500,54 +496,73 @@ namespace CppMeta {
       struct A; struct AA; struct AB; struct AC;
       struct M1{
         typedef Tree<A, Tree<AA>, Tree<AB>, Tree<AC>> States;
-        template <template <typename> class, typename, typename, typename> struct Guard;
-        template <template <typename> class, typename, typename, typename> struct Action;
-        template <template <typename> class, typename> struct Enter;
-        template <template <typename> class, typename> struct Exit;
+        template <typename, typename, typename, typename> struct Guard;
+        template <typename, typename, typename, typename> struct Action;
+        template <typename, typename> struct Enter;
+        template <typename, typename> struct Exit;
       };
       
-      template <template <typename> class Post> struct M1::Action<Post, A, E1, AB> { void operator()() { action(1); } };
-      template <template <typename> class Post> struct M1::Action<Post, A, E2, AC> { void operator()() { Post<E3>()(); action(2); } };
-      template <template <typename> class Post> struct M1::Action<Post, A, E4, AA> { void operator()() { action(3); } };
+      template <typename Kernel> struct M1::Action<Kernel, A, E1, AB> { void operator()() { action(1); } };
+      template <typename Kernel> struct M1::Action<Kernel, A, E2, AC> { void operator()() { Kernel::template post<E3>(); action(2); } };
+      template <typename Kernel> struct M1::Action<Kernel, A, E4, AA> { void operator()() { action(3); } };
       
       struct X; struct XX; struct XY; struct XZ;
       struct M2 {
         typedef Tree<X, Tree<XX>, Tree<XY>, Tree<XZ>> States;
-        template <template <typename> class, typename, typename, typename> struct Guard;
-        template <template <typename> class, typename, typename, typename> struct Action;
-        template <template <typename> class, typename> struct Enter;
-        template <template <typename> class, typename> struct Exit;
+        template <typename, typename, typename, typename> struct Guard;
+        template <typename, typename, typename, typename> struct Action;
+        template <typename, typename> struct Enter;
+        template <typename, typename> struct Exit;
       };
       
-      template <template <typename> class Post> struct M2::Action<Post, X, E1, XY> { void operator()() { action(5); } };
-      template <template <typename> class Post> struct M2::Action<Post, X, E3, XZ> { void operator()() { action(6); } };
-      template <template <typename> class Post> struct M2::Action<Post, X, E5, XX> { void operator()() { Post<E4>()(); action(7); } };
-      
-      struct Context {
-        static void (*preempt)();
-        static void prepare(void (*p)()) { preempt = p; }
-        static void push() { preempt(); }
-        static void pop() { }
-      };
-      void (*Context::preempt)();
+      template <typename Kernel> struct M2::Action<Kernel, X, E1, XY> { void operator()() { action(5); } };
+      template <typename Kernel> struct M2::Action<Kernel, X, E3, XZ> { void operator()() { action(6); } };
+      template <typename Kernel> struct M2::Action<Kernel, X, E5, XX> { void operator()() { Kernel::template post<E4>(); action(7); } };
       
       typedef List<M1, M2> Machines;
       
+      struct Kernel {
+        struct Context {
+          static void (*preempt)();
+          static void prepare(void (*p)()) { preempt = p; }
+          static void push() { preempt(); }
+          static void pop() { }
+          static void enable() { }
+        };
+        template <typename Event> static void post() { Scheduler::Post<Kernel, Machines, Event>()(); }
+      };
+      void (*Kernel::Context::preempt)();
+      
       void test() {
-        Scheduler::Initialise<Context, Machines>()();
+        Scheduler::Initialise<Kernel, Machines>()();
         
         actions = 0;
-        Scheduler::Post<Context, Machines, E1>()();
+        Kernel::post<E1>();
         assert(actions == 15);
         
         actions = 0;
-        Scheduler::Post<Context, Machines, E2>()();
+        Kernel::post<E2>();
         assert(actions == 26);
         
         actions = 0;
-        Scheduler::Post<Context, Machines, E5>()();
+        Kernel::post<E5>();
         assert(actions == 37);
       }
     }
+    // namespace ForOS {
+    //   struct Context {
+    //     static void (*preempt)();
+    //     static void prepare(void (*p)()) { preempt = p; }
+    //     static void push() { preempt(); }
+    //     static void pop() { }
+    //     static void enable() { }
+    //   };
+    //   void (*Context::preempt)();
+    //   
+    //   typedef OS::Kernel<Context, List<>, ForScheduler::Machines> MyKernel;
+    //   void test() {
+    //     MyKernel::run();
+    //   }
+    // }
   }
 }
