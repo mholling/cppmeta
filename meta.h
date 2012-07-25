@@ -1,5 +1,6 @@
 namespace CppMeta {
-  template <typename Type, Type t> struct Value { static const Type value = t; };
+  template <typename Type, Type t> struct Value { enum : Type { value = t }; };
+  // template <typename Type, Type t> struct Value { static const Type value = t; };
   template <bool b> using Bool = Value<bool, b>;
   template <int  i> using Int  = Value<int,  i>;
   template <char c> using Char = Value<char, c>;

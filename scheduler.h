@@ -1,7 +1,7 @@
 namespace CppMeta {
   namespace Scheduler {
     typedef void (*Dispatcher)();
-    template <typename Machine> using Dispatchers = Queue::Head<Machine, Dispatcher>;
+    template <typename Machine> using Dispatchers = Queue::Node<Machine, Dispatcher>;
     
     template <typename Kernel, typename Machines, typename Event>
     struct Post {

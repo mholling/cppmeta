@@ -293,8 +293,9 @@ namespace CppMeta {
     }
     namespace ForQueues {
       struct Owner; struct Owner2;
-      typedef Queue::Head<Owner, int> Ints;
-      typedef Queue::Head<Owner2, int> Ints2;
+      typedef Queue::Node<Owner, int> Ints;
+      typedef Queue::Node<Owner, int, char> IntsChars;
+      typedef Queue::Node<Owner2, int> Ints2;
       
       void test() {
         bool result;
@@ -317,6 +318,19 @@ namespace CppMeta {
         
         assert(result = Ints::any());
         assert(result = !Ints2::any());
+        
+        IntsChars::Enqueue<10, 'a'>()();
+        IntsChars::Enqueue<11, 'b'>()();
+        IntsChars::Enqueue<12, 'c'>()();
+        
+        int i = 0;
+        char c = 0;
+        IntsChars::dequeue(i, c);
+        assert(i == 10 && c == 'a');
+        IntsChars::dequeue(i, c);
+        assert(i == 11 && c == 'b');
+        IntsChars::dequeue(i, c);
+        assert(i == 12 && c == 'c');
       }
     }
     namespace ForHFSMs {

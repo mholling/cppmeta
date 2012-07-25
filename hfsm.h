@@ -134,7 +134,7 @@ namespace CppMeta {
     template <typename Machine, typename Event>
     struct RespondsTo {
       typedef typename Flatten<typename Machine::States>::Result States;
-      struct DummyKernel;
+      struct DummyKernel { template <typename> static void post() { } };
       template <typename State>
       struct HasEventTransition {
         template <typename Target> using HasTransitionTo = HasTransition<DummyKernel, Machine, State, Event, Target>;

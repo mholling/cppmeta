@@ -1,43 +1,55 @@
 namespace CppMeta {
   namespace Queue {
-    template <typename Type>
-    struct Node {
-      typedef Node *Pointer;
-      Type type;
-      Pointer next;
-      Node(Type type) : type(type), next(nullptr) { }
-      
-      bool enqueue(Pointer &head) {
-        return head == this ? false : head != nullptr ? enqueue(head->next) : (head = this, next = nullptr, true);
-      }
-      
-      static Type dequeue(Pointer &head) {
-        Node &node = *head;
-        head = head->next;
-        node.next = nullptr;
-        return node.type;
-      }
+    template <typename...> struct Tuple;
+    template <typename Type, typename... Types>
+    struct Tuple<Type, Types...> {
+      Type value;
+      Tuple<Types...> values;
+      Tuple(Type value, Types... values) : value(value), values(values...) { }
+      void get(Type &val, Types&... vals) { val = value; values.get(vals...); }
     };
+    template <> struct Tuple<> { void get() { } };
     
-    template <typename Owner, typename Type>
-    struct Head {
-      static typename Node<Type>::Pointer head;
+    template <typename Owner, typename... Types>
+    class Node {
+      Tuple<Types...> contents;
       
-      template <Type t>
+      typedef Node *Pointer;
+      static Pointer head;
+      Pointer next;
+      
+      Node(Types... contents) : contents(contents...), next(nullptr) { }
+      
+      bool push(Pointer &after = head) {
+        return after == this ? false : after != nullptr ? push(after->next) : (after = this, next = nullptr, true);
+      }
+      
+      static Node &pop() {
+        Node &node = *head;
+        head = node.next;
+        node.next = nullptr;
+        return node;
+      }
+      
+    public:
+      template <Types...>
       struct Enqueue {
-        static Node<Type> node;
-        bool operator()() { return node.enqueue(head); }
+        static Node node;
+        bool operator()() { return node.push(); }
       };
       
+      template <Types... values>
+      static bool enqueue() { return Enqueue<values...>()(); }
+      
+      static void dequeue(Types&... vals) { pop().contents.get(vals...); }
+      static auto dequeue() -> decltype(contents.value) { return pop().contents.value; }
+      
       static bool any() { return head != nullptr; }
-      static Type dequeue() { return Node<Type>::dequeue(head); }
-      template <Type t>
-      static bool enqueue() { return Enqueue<t>()(); }
     };
     
-    template <typename Owner, typename Type>
-    typename Node<Type>::Pointer Head<Owner, Type>::head = nullptr;
-    template <typename Owner, typename Type> template <Type t>
-    Node<Type> Head<Owner, Type>::Enqueue<t>::node(t);
+    template <typename Owner, typename... Types>
+    typename Node<Owner, Types...>::Pointer Node<Owner, Types...>::head = nullptr;
+    template <typename Owner, typename... Types> template <Types... vals>
+    Node<Owner, Types...> Node<Owner, Types...>::Enqueue<vals...>::node(vals...);
   }
 }
