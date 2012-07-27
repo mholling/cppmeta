@@ -563,20 +563,50 @@ namespace CppMeta {
         assert(actions == 37);
       }
     }
-    // namespace ForOS {
-    //   struct Context {
-    //     static void (*preempt)();
-    //     static void prepare(void (*p)()) { preempt = p; }
-    //     static void push() { preempt(); }
-    //     static void pop() { }
-    //     static void enable() { }
-    //   };
-    //   void (*Context::preempt)();
-    //   
-    //   typedef OS::Kernel<Context, List<>, ForScheduler::Machines> MyKernel;
-    //   void test() {
-    //     MyKernel::run();
-    //   }
-    // }
+    namespace ForOS {
+      struct Context {
+        static void (*preempt)();
+        static void prepare(void (*p)()) { preempt = p; }
+        static void push() { preempt(); }
+        static void pop() { }
+        static void enable() { }
+      };
+      void (*Context::preempt)();
+      
+      struct Irq1; struct Irq2; struct Irq3;
+      
+      struct D1 {
+        template <typename Kernel, typename Interrupt> struct Handle;
+        typedef List<> Dependencies;
+        template <typename Kernel> struct Initialise { void operator()() { } };
+      };
+      template <typename Kernel>
+      struct D1::Handle<Kernel, Irq3> {
+        void operator()() { volatile int x = 666; ++x; }
+      };
+      
+      struct D2 {
+        template <typename Kernel, typename Interrupt> struct Handle;
+        typedef List<D1> Dependencies;
+        template <typename Kernel> struct Initialise { void operator()() { } };
+      };
+      template <typename Kernel>
+      struct D2::Handle<Kernel, Irq3> {
+        void operator()() { volatile int x = 222; ++x; }
+      };
+      
+      typedef List<D2> Drivers;
+      typedef List<> Machines;
+      typedef List<Irq1, Irq2, Irq3> Interrupts;
+      
+      typedef OS::Kernel<Context, Drivers, Machines> Kernel;
+      typedef OS::VectorTable<Kernel, Interrupts> VectorTable;
+      
+      __attribute__ ((used, section (".isr_vector")))
+      const VectorTable vt;
+      
+      void test() {
+      }
+    }
   }
 }
