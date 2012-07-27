@@ -1,9 +1,7 @@
 namespace CppMeta {
   namespace OS {
-    template <typename _Context, typename RequestedDrivers, typename Machines>
+    template <typename Context, typename RequestedDrivers, typename Machines>
     struct Kernel {
-      typedef _Context Context;
-      
       template <typename Driver> struct GetDependencies { typedef typename Driver::Dependencies Result; };
       template <typename DriverList>
       struct ExpandDependencies {
@@ -31,6 +29,11 @@ namespace CppMeta {
       
       template <typename Event>
       static void post() { Post<Event>()(); }
+      
+      static void prepare_context(void (*p)()) { Context::prepare(p); }
+      static void push_context() { Context::push(); }
+      static void pop_context() { Context::pop(); }
+      static void enable_contexts() { Context::enable(); }
     };
     
     template <typename Kernel, typename Interrupts>

@@ -14,7 +14,7 @@ namespace CppMeta {
       typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
     
       struct DoNothing { void operator()() { } };
-      struct PushContext { void operator()() { Kernel::Context::push(); } };
+      struct PushContext { void operator()() { Kernel::push_context(); } };
       typedef typename Any<RespondingMachines>::Result PushContextNeeded;
       typedef typename If<PushContextNeeded, PushContext, DoNothing>::Result PushContextIfNeeded;
     
@@ -33,14 +33,14 @@ namespace CppMeta {
         typedef RunMachine Result;
         typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
         void operator()() {
-          Kernel::Context::prepare(run<Kernel, Machines, PreemptingMachines>);
+          Kernel::prepare_context(run<Kernel, Machines, PreemptingMachines>);
           while (Dispatchers<Machine>::any()) { Dispatchers<Machine>::dequeue()(); }
         }
       };
       void operator()() {
         Each<MachinesToRun, RunMachine>()();
-        Kernel::Context::prepare(run<Kernel, Machines, MachinesToRun>);
-        Kernel::Context::pop();
+        Kernel::prepare_context(run<Kernel, Machines, MachinesToRun>);
+        Kernel::pop_context();
       }
     };
     
@@ -54,30 +54,29 @@ namespace CppMeta {
         typedef InitialiseMachine Result;
         typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
         void operator()() {
-          Kernel::Context::prepare(run<Kernel, Machines, PreemptingMachines>);
+          Kernel::prepare_context(run<Kernel, Machines, PreemptingMachines>);
           HFSM::Initialise<Kernel, Machine>()();
         }
       };
       void operator()() {
-        Kernel::Context::prepare(run<Kernel, Machines, List<>>);
-        Kernel::Context::enable();
+        Kernel::prepare_context(run<Kernel, Machines, List<>>);
+        Kernel::enable_contexts();
         Each<Machines, InitialiseMachine>()();
-        Kernel::Context::prepare(run<Kernel, Machines, Machines>);
-        Kernel::Context::push(); // flush out any events which were fired during initialisation
+        Kernel::prepare_context(run<Kernel, Machines, Machines>);
+        Kernel::push_context(); // flush out any events which were fired during initialisation
       }
     };
     
     // // Example Kernel class for Cortex M3:
     //
     // struct Kernel {
-    //   struct Context {
-    //     static void (*preempt)();
-    //     static void prepare(void (*p)()) { preempt = p; }
-    //     static void push() { ((SCB_Type *) SCB_BASE)->ICSR = SCB_ICSR_PENDSVSET_Msk; }
-    //     static void pop() { __asm volatile ("svc 0x01"); }
-    //   };
+    //   static void (*preempt)();
+    //   static void prepare_context(void (*p)()) { preempt = p; }
+    //   static void push_context() { ((SCB_Type *) SCB_BASE)->ICSR = SCB_ICSR_PENDSVSET_Msk; }
+    //   static void pop_context() { __asm volatile ("svc 0x01"); }
+    //   static void enable_contexts() { __asm volatile ("cpsie i"); }
     // };
-    // void (*Kernel::Context::preempt)();
+    // void (*Kernel::preempt)();
     // 
     // __attribute__ ((naked)) void handler() { // for PendSV_IRQ
     //   register uint32_t xpsr      asm("r1") = 0x01000000;

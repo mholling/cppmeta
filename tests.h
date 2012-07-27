@@ -536,16 +536,14 @@ namespace CppMeta {
       typedef List<M1, M2> Machines;
       
       struct Kernel {
-        struct Context {
-          static void (*preempt)();
-          static void prepare(void (*p)()) { preempt = p; }
-          static void push() { preempt(); }
-          static void pop() { }
-          static void enable() { }
-        };
+        static void (*preempt)();
+        static void prepare_context(void (*p)()) { preempt = p; }
+        static void push_context() { preempt(); }
+        static void pop_context() { }
+        static void enable_contexts() { }
         template <typename Event> static void post() { Scheduler::Post<Kernel, Machines, Event>()(); }
       };
-      void (*Kernel::Context::preempt)();
+      void (*Kernel::preempt)();
       
       void test() {
         Scheduler::Initialise<Kernel, Machines>()();
@@ -564,16 +562,18 @@ namespace CppMeta {
       }
     }
     namespace ForOS {
-      struct Context {
-        static void (*preempt)();
-        static void prepare(void (*p)()) { preempt = p; }
-        static void push() { preempt(); }
-        static void pop() { }
-        static void enable() { }
-      };
-      void (*Context::preempt)();
+      // struct Context {
+      //   static void (*preempt)();
+      //   static void prepare(void (*p)()) { preempt = p; }
+      //   static void push() { preempt(); }
+      //   static void pop() { }
+      //   static void enable() { }
+      // };
+      // void (*Context::preempt)();
+      struct Context;
       
       struct Irq1; struct Irq2; struct Irq3;
+      bool d1_irq3_called, d2_irq3_called, d3_irq1_called;
       
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
@@ -581,9 +581,7 @@ namespace CppMeta {
         template <typename Kernel> struct Initialise { void operator()() { } };
       };
       template <typename Kernel>
-      struct D1::Handle<Kernel, Irq3> {
-        void operator()() { volatile int x = 666; ++x; }
-      };
+      struct D1::Handle<Kernel, Irq3> { void operator()() { d1_irq3_called = true; } };
       
       struct D2 {
         template <typename Kernel, typename Interrupt> struct Handle;
@@ -591,21 +589,45 @@ namespace CppMeta {
         template <typename Kernel> struct Initialise { void operator()() { } };
       };
       template <typename Kernel>
-      struct D2::Handle<Kernel, Irq3> {
-        void operator()() { volatile int x = 222; ++x; }
+      struct D2::Handle<Kernel, Irq3> { void operator()() { d2_irq3_called = true; } };
+      
+      struct D3 {
+        template <typename Kernel, typename Interrupt> struct Handle;
+        typedef List<D1> Dependencies;
+        template <typename Kernel> struct Initialise { void operator()() { } };
+      };
+      template <typename Kernel>
+      struct D3::Handle<Kernel, Irq1> { void operator()() { d3_irq1_called = true; } };
+      
+      struct D4 {
+        template <typename Kernel, typename Interrupt> struct Handle;
+        typedef List<D2> Dependencies;
+        template <typename Kernel> struct Initialise { void operator()() { } };
       };
       
-      typedef List<D2> Drivers;
+      typedef List<D3, D4> Drivers;
       typedef List<> Machines;
       typedef List<Irq1, Irq2, Irq3> Interrupts;
-      
       typedef OS::Kernel<Context, Drivers, Machines> Kernel;
       typedef OS::VectorTable<Kernel, Interrupts> VectorTable;
       
-      __attribute__ ((used, section (".isr_vector")))
-      const VectorTable vt;
+      static_assert(Same<Kernel::Drivers, List<D1, D3, D2, D4>>::Result::value, "failed");
+      
+      VectorTable vector_table;
+      void (** vectors)() = reinterpret_cast<void (**)()>(&vector_table);
       
       void test() {
+        d3_irq1_called = d1_irq3_called = d3_irq1_called = false;
+        vectors[0]();
+        assert(d3_irq1_called && !d1_irq3_called && !d2_irq3_called);
+        
+        d3_irq1_called = d1_irq3_called = d3_irq1_called = false;
+        vectors[1]();
+        assert(!d3_irq1_called && !d1_irq3_called && !d2_irq3_called);
+        
+        d3_irq1_called = d1_irq3_called = d3_irq1_called = false;
+        vectors[2]();
+        assert(!d3_irq1_called && d1_irq3_called && d2_irq3_called);
       }
     }
   }
