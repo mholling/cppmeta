@@ -80,14 +80,13 @@ namespace CppMeta {
   template <typename Type, typename... Args> using HasBoolCallOperator = HasCallOperator<Type, bool, Args...>;
   template <typename Type, typename... Args> using HasVoidCallOperator = HasCallOperator<Type, void, Args...>;
   
+  struct DoNothing { template <typename... Args> void operator()(Args...) { } };
+  
   template <typename Predicate, typename Action>
   struct DoIf {
+    struct DoAction { template <typename... Args> void operator()(Args... args) { Action()(args...); } };
     template <typename... Args>
-    struct DoAction { void operator()(Args... args) { Action()(args...); } };
-    template <typename... Args>
-    struct DoNothing { void operator()(Args...) { } };
-    template <typename... Args>
-    void operator()(Args... args) { typename If<Predicate, DoAction<Args...>, DoNothing<Args...>>::Result()(args...); }
+    void operator()(Args... args) { typename If<Predicate, DoAction, DoNothing>::Result()(args...); }
   };
 }
 

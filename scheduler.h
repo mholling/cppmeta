@@ -13,7 +13,6 @@ namespace CppMeta {
       template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
       typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
     
-      struct DoNothing { void operator()() { } };
       struct PushContext { void operator()() { Kernel::push_context(); } };
       typedef typename Any<RespondingMachines>::Result PushContextNeeded;
       typedef typename If<PushContextNeeded, PushContext, DoNothing>::Result PushContextIfNeeded;
