@@ -60,6 +60,7 @@ namespace CppMeta {
       using HasTransition = Or<typename HasGuard<Kernel, Machine, State, Event, Target>::Result, typename HasAction<Kernel, Machine, State, Event, Target>::Result>;
     
     struct EmptyAction { void operator()() { } };
+    struct EmptyGuard { bool operator()() { return true; } };
     
     template <typename Kernel, typename Machine, typename Source, typename Event, typename Target>
     struct ChangeState {
@@ -84,7 +85,6 @@ namespace CppMeta {
         struct TryTransition {
           typedef TryTransition Result;
           typedef typename HasGuard<Kernel, Machine, State, Event, Target>::Result GuardExists;
-          struct EmptyGuard { bool operator()() { return true; } };
           typedef typename If<GuardExists, typename Machine::template Guard<Kernel, State, Event, Target>, EmptyGuard>::Result Guard;
           bool operator()() { return Guard()() && ChangeState<Kernel, Machine, State, Event, Target>()(); }
         };
