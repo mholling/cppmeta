@@ -82,11 +82,10 @@ namespace CppMeta {
   
   struct DoNothing { template <typename... Args> void operator()(Args...) { } };
   
-  template <typename Predicate, typename Action>
+  template <typename Predicate, typename ActionIfTrue, typename ActionIfFalse = DoNothing>
   struct DoIf {
-    struct DoAction { template <typename... Args> void operator()(Args... args) { Action()(args...); } };
     template <typename... Args>
-    void operator()(Args... args) { typename If<Predicate, DoAction, DoNothing>::Result()(args...); }
+    void operator()(Args... args) { typename If<Predicate, ActionIfTrue, ActionIfFalse>::Result()(args...); }
   };
 }
 

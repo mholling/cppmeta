@@ -67,6 +67,7 @@ namespace CppMeta {
       int x;
       struct AddToX { void operator()(int y) { x += y; } };
       struct Add2ToX { void operator()() { x += 2; } };
+      struct Add10ToX { void operator()() { x += 10; } };
       
       void test() {
         x = 0;
@@ -74,10 +75,16 @@ namespace CppMeta {
         assert(x == 0);
         DoIf<Bool<false>, Add2ToX>()();
         assert(x == 0);
+        DoIf<Bool<false>, Add2ToX, Add10ToX>()();
+        assert(x == 10);
+        
+        x = 0;
         DoIf<Bool<true>, AddToX>()(3);
         assert(x == 3);
         DoIf<Bool<true>, Add2ToX>()();
         assert(x == 5);
+        DoIf<Bool<true>, Add2ToX, Add10ToX>()();
+        assert(x == 7);
       }
     }
     namespace ForLists {
