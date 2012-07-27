@@ -63,6 +63,22 @@ namespace CppMeta {
       static_assert(!HasCallOperator<VoidReturn,            void, int, char>::Result::value, "failed");
       static_assert(!HasBoolCallOperator<VoidReturn>::Result::value, "failed");
       static_assert( HasBoolCallOperator<BoolReturn>::Result::value, "failed");
+      
+      int x;
+      struct AddToX { void operator()(int y) { x += y; } };
+      struct Add2ToX { void operator()() { x += 2; } };
+      
+      void test() {
+        x = 0;
+        DoIf<Bool<false>, AddToX>()(3);
+        assert(x == 0);
+        DoIf<Bool<false>, Add2ToX>()();
+        assert(x == 0);
+        DoIf<Bool<true>, AddToX>()(3);
+        assert(x == 3);
+        DoIf<Bool<true>, Add2ToX>()();
+        assert(x == 5);
+      }
     }
     namespace ForLists {
       static_assert(IsList<List<int, char>>::Result::value, "failed");
@@ -617,15 +633,15 @@ namespace CppMeta {
       void (** vectors)() = reinterpret_cast<void (**)()>(&vector_table);
       
       void test() {
-        d3_irq1_called = d1_irq3_called = d3_irq1_called = false;
+        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
         vectors[0]();
         assert(d3_irq1_called && !d1_irq3_called && !d2_irq3_called);
         
-        d3_irq1_called = d1_irq3_called = d3_irq1_called = false;
+        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
         vectors[1]();
         assert(!d3_irq1_called && !d1_irq3_called && !d2_irq3_called);
         
-        d3_irq1_called = d1_irq3_called = d3_irq1_called = false;
+        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
         vectors[2]();
         assert(!d3_irq1_called && d1_irq3_called && d2_irq3_called);
       }

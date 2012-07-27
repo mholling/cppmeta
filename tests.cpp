@@ -12,6 +12,7 @@
 using namespace CppMeta::Tests;
 
 int main() {
+  Basics::test();
   ForLists::test();
   ForQueues::test();
   ForHFSMs::test();
