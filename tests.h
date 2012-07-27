@@ -77,14 +77,12 @@ namespace CppMeta {
         assert(x == 0);
         DoIf<Bool<false>, Add2ToX, Add10ToX>()();
         assert(x == 10);
-        
-        x = 0;
         DoIf<Bool<true>, AddToX>()(3);
-        assert(x == 3);
+        assert(x == 13);
         DoIf<Bool<true>, Add2ToX>()();
-        assert(x == 5);
+        assert(x == 15);
         DoIf<Bool<true>, Add2ToX, Add10ToX>()();
-        assert(x == 7);
+        assert(x == 17);
       }
     }
     namespace ForLists {
