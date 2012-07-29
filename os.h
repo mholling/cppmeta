@@ -14,7 +14,7 @@ namespace CppMeta {
         template <typename Driver> struct Initialise { typedef typename Driver::template Initialise<Kernel> Result; };
         void operator ()() {
           Each<Drivers, Initialise>()();
-          Scheduler::Initialise<Kernel, Machines>()();
+          Scheduler::Initialise<Kernel, Context, Machines>()();
           while(true) ; // TODO;
         }
       };
@@ -24,16 +24,21 @@ namespace CppMeta {
       template <typename Event>
       struct Post {
         typedef Post Result;
-        void operator()() { Scheduler::Post<Context, Machines, Event>()(); }
+        void operator()() { Scheduler::Post<Kernel, Context, Machines, Event>()(); }
       };
       
       template <typename Event>
       static void post() { Post<Event>()(); }
       
-      static void prepare_context(void (*p)()) { Context::prepare(p); }
-      static void push_context() { Context::push(); }
-      static void pop_context() { Context::pop(); }
-      static void enable_contexts() { Context::enable(); }
+      template <typename Driver, typename... Types>
+      struct Call {
+        typedef Call Result;
+        template <typename... Args>
+        void operator()(Args... args) { typename Driver::template Call<Kernel, Types...>()(args...); }
+      };
+
+      template <typename Driver, typename... Types, typename... Args>
+      static void call(Args... args) { Call<Driver, Types...>()(args...); }
     };
     
     template <typename Kernel, typename Interrupts>

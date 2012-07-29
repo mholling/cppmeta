@@ -556,18 +556,21 @@ namespace CppMeta {
       
       typedef List<M1, M2> Machines;
       
-      struct Kernel {
+      struct Context {
         static void (*preempt)();
-        static void prepare_context(void (*p)()) { preempt = p; }
-        static void push_context() { preempt(); }
-        static void pop_context() { }
-        static void enable_contexts() { }
-        template <typename Event> static void post() { Scheduler::Post<Kernel, Machines, Event>()(); }
+        static void prepare(void (*p)()) { preempt = p; }
+        static void push() { preempt(); }
+        static void pop() { }
+        static void enable() { }
       };
-      void (*Kernel::preempt)();
+      
+      void (*Context::preempt)();
+      struct Kernel {
+        template <typename Event> static void post() { Scheduler::Post<Kernel, Context, Machines, Event>()(); }
+      };
       
       void test() {
-        Scheduler::Initialise<Kernel, Machines>()();
+        Scheduler::Initialise<Kernel, Context, Machines>()();
         
         actions = 0;
         Kernel::post<E1>();

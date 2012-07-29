@@ -3,7 +3,7 @@ namespace CppMeta {
     typedef void (*Dispatcher)();
     template <typename Machine> using Dispatchers = Queue::Node<Machine, Dispatcher>;
     
-    template <typename Kernel, typename Machines, typename Event>
+    template <typename Kernel, typename Context, typename Machines, typename Event>
     struct Post {
       template <typename Machine>
       struct PostEvent {
@@ -13,7 +13,7 @@ namespace CppMeta {
       template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
       typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
     
-      struct PushContext { void operator()() { Kernel::push_context(); } };
+      struct PushContext { void operator()() { Context::push(); } };
       typedef typename Any<RespondingMachines>::Result PushContextNeeded;
       typedef typename If<PushContextNeeded, PushContext, DoNothing>::Result PushContextIfNeeded;
     
@@ -23,46 +23,46 @@ namespace CppMeta {
       }
     };
     
-    template <typename Kernel, typename Machines, typename MachinesToRun> void run();
+    template <typename Context, typename Machines, typename MachinesToRun> void run();
     
-    template <typename Kernel, typename Machines, typename MachinesToRun>
+    template <typename Context, typename Machines, typename MachinesToRun>
     struct Run {
       template <typename Machine>
       struct RunMachine {
         typedef RunMachine Result;
         typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
         void operator()() {
-          Kernel::prepare_context(run<Kernel, Machines, PreemptingMachines>);
+          Context::prepare(run<Context, Machines, PreemptingMachines>);
           while (Dispatchers<Machine>::any()) { Dispatchers<Machine>::dequeue()(); }
         }
       };
       void operator()() {
         Each<MachinesToRun, RunMachine>()();
-        Kernel::prepare_context(run<Kernel, Machines, MachinesToRun>);
-        Kernel::pop_context();
+        Context::prepare(run<Context, Machines, MachinesToRun>);
+        Context::pop();
       }
     };
     
-    template <typename Kernel, typename Machines, typename MachinesToRun>
-    void run() { Run<Kernel, Machines, MachinesToRun>()(); }
+    template <typename Context, typename Machines, typename MachinesToRun>
+    void run() { Run<Context, Machines, MachinesToRun>()(); }
     
-    template <typename Kernel, typename Machines>
+    template <typename Kernel, typename Context, typename Machines>
     struct Initialise {
       template <typename Machine>
       struct InitialiseMachine {
         typedef InitialiseMachine Result;
         typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
         void operator()() {
-          Kernel::prepare_context(run<Kernel, Machines, PreemptingMachines>);
+          Context::prepare(run<Context, Machines, PreemptingMachines>);
           HFSM::Initialise<Kernel, Machine>()();
         }
       };
       void operator()() {
-        Kernel::prepare_context(run<Kernel, Machines, List<>>);
-        Kernel::enable_contexts();
+        Context::prepare(run<Context, Machines, List<>>);
+        Context::enable();
         Each<Machines, InitialiseMachine>()();
-        Kernel::prepare_context(run<Kernel, Machines, Machines>);
-        Kernel::push_context(); // flush out any events which were fired during initialisation
+        Context::prepare(run<Context, Machines, Machines>);
+        Context::push(); // flush out any events which were fired during initialisation
       }
     };
     
