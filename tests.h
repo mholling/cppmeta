@@ -530,7 +530,7 @@ namespace CppMeta {
       
       struct A; struct AA; struct AB; struct AC;
       struct M1{
-        typedef Tree<A, Tree<AA>, Tree<AB>, Tree<AC>> States;
+        using States = Tree<A, Tree<AA>, Tree<AB>, Tree<AC>>;
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
         template <typename, typename> struct Enter;
@@ -543,7 +543,7 @@ namespace CppMeta {
       
       struct X; struct XX; struct XY; struct XZ;
       struct M2 {
-        typedef Tree<X, Tree<XX>, Tree<XY>, Tree<XZ>> States;
+        using States = Tree<X, Tree<XX>, Tree<XY>, Tree<XZ>>;
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
         template <typename, typename> struct Enter;
@@ -554,7 +554,7 @@ namespace CppMeta {
       template <typename Kernel> struct M2::Action<Kernel, X, E3, XZ> { void operator()() { action(6); } };
       template <typename Kernel> struct M2::Action<Kernel, X, E5, XX> { void operator()() { Kernel::template post<E4>(); action(7); } };
       
-      typedef List<M1, M2> Machines;
+      using Machines = List<M1, M2>;
       
       struct Context {
         static void (*preempt)();
@@ -601,7 +601,7 @@ namespace CppMeta {
       
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
-        typedef List<> Dependencies;
+        using Dependencies = List<>;
         template <typename Kernel> struct Initialise { void operator()() { } };
       };
       template <typename Kernel>
@@ -609,7 +609,7 @@ namespace CppMeta {
       
       struct D2 {
         template <typename Kernel, typename Interrupt> struct Handle;
-        typedef List<D1> Dependencies;
+        using Dependencies = List<D1>;
         template <typename Kernel> struct Initialise { void operator()() { } };
       };
       template <typename Kernel>
@@ -617,7 +617,7 @@ namespace CppMeta {
       
       struct D3 {
         template <typename Kernel, typename Interrupt> struct Handle;
-        typedef List<D1> Dependencies;
+        using Dependencies = List<D1>;
         template <typename Kernel> struct Initialise { void operator()() { } };
       };
       template <typename Kernel>
@@ -625,15 +625,15 @@ namespace CppMeta {
       
       struct D4 {
         template <typename Kernel, typename Interrupt> struct Handle;
-        typedef List<D2> Dependencies;
+        using Dependencies = List<D2>;
         template <typename Kernel> struct Initialise { void operator()() { } };
       };
       
-      typedef List<D3, D4> Drivers;
-      typedef List<> Machines;
-      typedef List<Irq1, Irq2, Irq3> Interrupts;
-      typedef OS::Kernel<Context, Drivers, Machines> Kernel;
-      typedef OS::VectorTable<Kernel, Interrupts> VectorTable;
+      using Drivers = List<D3, D4>;
+      using Machines = List<>;
+      using Interrupts = List<Irq1, Irq2, Irq3>;
+      using Kernel = OS::Kernel<Context, Drivers, Machines>;
+      using VectorTable = OS::VectorTable<Kernel, Interrupts>;
       
       static_assert(Same<Kernel::Drivers, List<D1, D3, D2, D4>>::Result::value, "failed");
       
