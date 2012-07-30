@@ -1,21 +1,21 @@
 namespace CppMeta {
   namespace Scheduler {
-    typedef void (*Dispatcher)();
+    using Dispatcher = void (*)();
     template <typename Machine> using Dispatchers = Queue::Node<Machine, Dispatcher>;
     
     template <typename Kernel, typename Context, typename Machines, typename Event>
     struct Post {
       template <typename Machine>
       struct PostEvent {
-        typedef typename Dispatchers<Machine>::template Enqueue<HFSM::dispatch<Kernel, Machine, Event>> Result;
+        using Result = typename Dispatchers<Machine>::template Enqueue<HFSM::dispatch<Kernel, Machine, Event>>;
       };
     
       template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
-      typedef typename Select<Machines, RespondsToEvent>::Result RespondingMachines;
+      using RespondingMachines = typename Select<Machines, RespondsToEvent>::Result;
     
       struct PushContext { void operator()() { Context::push(); } };
-      typedef typename Any<RespondingMachines>::Result PushContextNeeded;
-      typedef typename If<PushContextNeeded, PushContext, DoNothing>::Result PushContextIfNeeded;
+      using PushContextNeeded = typename Any<RespondingMachines>::Result;
+      using PushContextIfNeeded = typename If<PushContextNeeded, PushContext, DoNothing>::Result;
     
       void operator()() {
         Each<RespondingMachines, PostEvent>()();
@@ -29,8 +29,8 @@ namespace CppMeta {
     struct Run {
       template <typename Machine>
       struct RunMachine {
-        typedef RunMachine Result;
-        typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
+        using Result = RunMachine;
+        using PreemptingMachines = typename UpTo<Machines, Machine>::Result;
         void operator()() {
           Context::prepare(run<Context, Machines, PreemptingMachines>);
           while (Dispatchers<Machine>::any()) { Dispatchers<Machine>::dequeue()(); }
@@ -50,8 +50,8 @@ namespace CppMeta {
     struct Initialise {
       template <typename Machine>
       struct InitialiseMachine {
-        typedef InitialiseMachine Result;
-        typedef typename UpTo<Machines, Machine>::Result PreemptingMachines;
+        using Result = InitialiseMachine;
+        using PreemptingMachines = typename UpTo<Machines, Machine>::Result;
         void operator()() {
           Context::prepare(run<Context, Machines, PreemptingMachines>);
           HFSM::Initialise<Kernel, Machine>()();

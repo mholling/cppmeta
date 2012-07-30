@@ -29,8 +29,8 @@ namespace CppMeta {
       static_assert(Same<Self<int>::Result, int>::Result::value, "failed");
       static_assert(!Same<Self<bool>::Result, int>::Result::value, "failed");
 
-      struct MakeChar { typedef char Result; };
-      template <typename Type> struct MakeType { typedef Type Result; };
+      struct MakeChar { using Result = char; };
+      template <typename Type> struct MakeType { using Result = Type; };
       static_assert(!CanEval<int>::Result::value, "failed");
       static_assert(CanEval<MakeChar>::Result::value, "failed");
       static_assert(CanEval<MakeType<long>>::Result::value, "failed");
@@ -100,9 +100,9 @@ namespace CppMeta {
       template <typename T> using IsFloat = Same<T, float>;
       static_assert(Same<Map<List<int, char, float, bool>, IsFloat>::Result, List<Bool<false>,Bool<false>,Bool<true>,Bool<false>>>::Result::value, "failed");
 
-      template <typename T, typename Index> struct GetIndex { typedef Index Result; };
+      template <typename T, typename Index> struct GetIndex { using Result = Index; };
       static_assert(Same<MapWithIndex<List<int, bool, char, long, float>, GetIndex>::Result, List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>>>::Result::value, "failed");
-      template <typename T, typename Index> struct GetElement { typedef T Result; };
+      template <typename T, typename Index> struct GetElement { using Result = T; };
       static_assert(Same<MapWithIndex<List<int, bool, char, long, float>, GetElement>::Result, List<int, bool, char, long, float>>::Result::value, "failed");
 
       static_assert(Same<Select<List<int, char, float, bool, float>, IsFloat>::Result, List<float, float>>::Result::value, "failed");
@@ -141,8 +141,8 @@ namespace CppMeta {
       static_assert(Same<UpTo<List<int, char, bool, float>, bool>::Result, List<int, char>>::Result::value, "failed");
       static_assert(Same<UpTo<List<int, char, bool, float>, int>::Result, List<>>::Result::value, "failed");
 
-      typedef List<Int<1>, Int<6>, Int<0>, Int<4>, Int<3>, Int<2>, Int<5>> Unsorted;
-      typedef List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>, Int<5>, Int<6>> Sorted;
+      using Unsorted = List<Int<1>, Int<6>, Int<0>, Int<4>, Int<3>, Int<2>, Int<5>>;
+      using Sorted   = List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>, Int<5>, Int<6>>;
       static_assert(Same<Sort<Unsorted, LessThan>::Result, Sorted>::Result::value, "failed");
       
       static_assert(Same<Max<Unsorted>::Result, Int<6>>::Result::value, "failed");
@@ -154,18 +154,18 @@ namespace CppMeta {
       struct SetX { void operator()(int v) { x = v; } };
       struct SetY { void operator()(int v) { y = v; } };
       struct SetZ { void operator()(int v) { z = v; } };
-      typedef List<SetX, SetY, SetZ> Setters;
+      using Setters = List<SetX, SetY, SetZ>;
       
       bool a[4] = { false };
       template <typename I>
       struct SetA {
-        typedef SetA Result;
+        using Result = SetA;
         void operator()() { a[I::value] = true; }
       };
       
       template <typename I>
       struct GetA {
-        typedef GetA Result;
+        using Result = GetA;
         bool operator()() { return a[I::value]; }
       };
       
@@ -176,10 +176,10 @@ namespace CppMeta {
       struct NowTrue    { bool operator()() { count++; return true; } };
       struct TrueAgain  { bool operator()() { count++; return true; } };
       struct FinalFalse { bool operator()() { count++; return false; } };
-      typedef List<StartFalse, StillFalse, NowTrue, TrueAgain, FinalFalse> SomeSuccesses;
-      typedef List<StartFalse, StillFalse, FinalFalse> AllFailures;
-      typedef List<NowTrue, TrueAgain, FinalFalse> SucceedTwiceThenFail;
-      typedef List<NowTrue, TrueAgain> SucceedTwice;
+      using SomeSuccesses = List<StartFalse, StillFalse, NowTrue, TrueAgain, FinalFalse>;
+      using AllFailures =  List<StartFalse, StillFalse, FinalFalse>;
+      using SucceedTwiceThenFail = List<NowTrue, TrueAgain, FinalFalse>;
+      using SucceedTwice = List<NowTrue, TrueAgain>;
       
       void test() {
         Each<List<SetX, SetY, SetZ>>()(10);
@@ -314,9 +314,9 @@ namespace CppMeta {
     }
     namespace ForQueues {
       struct Owner; struct Owner2;
-      typedef Queue::Node<Owner, int> Ints;
-      typedef Queue::Node<Owner, int, char> IntsChars;
-      typedef Queue::Node<Owner2, int> Ints2;
+      using Ints = Queue::Node<Owner, int>;
+      using IntsChars = Queue::Node<Owner, int, char>;
+      using Ints2 = Queue::Node<Owner2, int>;
       
       void test() {
         bool result;

@@ -14,7 +14,7 @@ namespace CppMeta {
     class Node {
       Tuple<Types...> contents;
       
-      typedef Node *Pointer;
+      using Pointer = Node *;
       static Pointer head;
       Pointer next;
       

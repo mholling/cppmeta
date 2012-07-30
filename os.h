@@ -2,16 +2,16 @@ namespace CppMeta {
   namespace OS {
     template <typename Context, typename RequestedDrivers, typename Machines>
     struct Kernel {
-      template <typename Driver> struct GetDependencies { typedef typename Driver::Dependencies Result; };
+      template <typename Driver> struct GetDependencies { using Result = typename Driver::Dependencies; };
       template <typename DriverList>
       struct ExpandDependencies {
         template <typename Driver> using Expand = Append<typename ExpandDependencies<typename GetDependencies<Driver>::Result>::Result, Driver>;
-        typedef typename Unique<typename Flatten<typename Map<DriverList, Expand>::Result>::Result>::Result Result;
+        using Result = typename Unique<typename Flatten<typename Map<DriverList, Expand>::Result>::Result>::Result;
       };
-      typedef typename ExpandDependencies<RequestedDrivers>::Result Drivers;
+      using Drivers = typename ExpandDependencies<RequestedDrivers>::Result;
       
       struct Run {
-        template <typename Driver> struct Initialise { typedef typename Driver::template Initialise<Kernel> Result; };
+        template <typename Driver> struct Initialise { using Result = typename Driver::template Initialise<Kernel>; };
         void operator ()() {
           Each<Drivers, Initialise>()();
           Scheduler::Initialise<Kernel, Context, Machines>()();
@@ -23,7 +23,7 @@ namespace CppMeta {
       
       template <typename Event>
       struct Post {
-        typedef Post Result;
+        using Result = Post;
         void operator()() { Scheduler::Post<Kernel, Context, Machines, Event>()(); }
       };
       
@@ -32,7 +32,7 @@ namespace CppMeta {
       
       template <typename Driver, typename... Types>
       struct Call {
-        typedef Call Result;
+        using Result = Call;
         template <typename... Args>
         void operator()(Args... args) { typename Driver::template Call<Kernel, Types...>()(args...); }
       };
@@ -46,8 +46,8 @@ namespace CppMeta {
       template <typename Interrupt>
       struct Handler {
         template <typename Driver> using HandlesInterrupt = HasVoidCallOperator<typename Driver::template Handle<Kernel, Interrupt>>;
-        template <typename Driver> struct GetHandler { typedef typename Driver::template Handle<Kernel, Interrupt> Result; };
-        typedef typename Select<typename Kernel::Drivers, HandlesInterrupt>::Result HandlingDrivers;
+        template <typename Driver> struct GetHandler { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
+        using HandlingDrivers = typename Select<typename Kernel::Drivers, HandlesInterrupt>::Result;
         void operator()() { Each<HandlingDrivers, GetHandler>()(); }
       };
       
@@ -58,11 +58,11 @@ namespace CppMeta {
       struct AddHandlerToTable : Table {
         void (* const vector)();
         constexpr AddHandlerToTable() : Table(), vector(handler<Interrupt>) { }
-        typedef AddHandlerToTable Result;
+        using Result = AddHandlerToTable;
       };
       
       struct EmptyTable { };
-      typedef typename Inject<Interrupts, AddHandlerToTable, EmptyTable>::Result Result;
+      using Result = typename Inject<Interrupts, AddHandlerToTable, EmptyTable>::Result;
     };
     
     template <typename Kernel, typename Interrupts> using VectorTable = typename MakeVectorTable<Kernel, Interrupts>::Result;
