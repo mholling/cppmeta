@@ -1,6 +1,5 @@
 namespace CppMeta {
   template <typename Type, Type t> struct Value { enum : Type { value = t }; };
-  // template <typename Type, Type t> struct Value { static const Type value = t; };
   template <bool b> using Bool = Value<bool, b>;
   template <int  i> using Int  = Value<int,  i>;
   template <char c> using Char = Value<char, c>;
@@ -30,9 +29,14 @@ namespace CppMeta {
   template <typename, typename> struct Or;
   template <typename Type, Type t1, Type t2>
   struct Or<Value<Type, t1>, Value<Type, t2>> { using Result = Bool<(t1 || t2)>; };
+  template <typename> struct Not;
+  template <typename Type, Type t>
+  struct Not<Value<Type, t>> { using Result = Bool<!t>; };
   
   template <typename Type1, typename Type2> struct Same { using Result = Bool<false>; };
   template <typename Type> struct Same<Type, Type> { using Result = Bool<true>; };
+  
+  template <typename Type1, typename Type2> using Different = Not<typename Same<Type1, Type2>::Result>;
   
   template <typename Type> struct Self { using Result = Type; };
   
@@ -65,7 +69,7 @@ namespace CppMeta {
   
   template <typename Type, typename Base>
   struct Inherits {
-    using Result = Bool<IsOrInherits<Type, Base>::Result::value && !Same<Type, Base>::Result::value>;
+    using Result = typename And<typename IsOrInherits<Type, Base>::Result, typename Different<Type, Base>::Result>::Result;
   };
   
   template <typename Type, typename Return, typename... Args>

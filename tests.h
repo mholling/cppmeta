@@ -3,6 +3,8 @@ namespace CppMeta {
     namespace Basics {
       static_assert(Same<int, int>::Result::value, "failed");
       static_assert(!Same<int, char>::Result::value, "failed");
+      static_assert(!Different<int, int>::Result::value, "failed");
+      static_assert(Different<int, char>::Result::value, "failed");
       
       static_assert(Same<Decrement<Int<10>>::Result, Int<9>>::Result::value, "failed");
       static_assert(Same<Increment<Int<9>>::Result, Int<10>>::Result::value, "failed");
@@ -25,6 +27,8 @@ namespace CppMeta {
       static_assert(Same<Or<Bool<true>, Bool<false>>::Result, Bool<true>>::Result::value, "failed");
       static_assert(Same<Or<Bool<false>, Bool<true>>::Result, Bool<true>>::Result::value, "failed");
       static_assert(Same<Or<Bool<false>, Bool<false>>::Result, Bool<false>>::Result::value, "failed");
+      static_assert(Same<Not<Bool<false>>::Result, Bool<true>>::Result::value, "failed");
+      static_assert(Same<Not<Bool<true>>::Result, Bool<false>>::Result::value, "failed");
       
       static_assert(Same<Self<int>::Result, int>::Result::value, "failed");
       static_assert(!Same<Self<bool>::Result, int>::Result::value, "failed");
@@ -586,14 +590,6 @@ namespace CppMeta {
       }
     }
     namespace ForOS {
-      // struct Context {
-      //   static void (*preempt)();
-      //   static void prepare(void (*p)()) { preempt = p; }
-      //   static void push() { preempt(); }
-      //   static void pop() { }
-      //   static void enable() { }
-      // };
-      // void (*Context::preempt)();
       struct Context;
       
       struct Irq1; struct Irq2; struct Irq3;
