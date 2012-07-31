@@ -3,6 +3,8 @@ namespace CppMeta {
     template <typename Context, typename RequestedDrivers, typename Machines>
     struct Kernel {
       template <typename Driver> struct GetDependencies { using Result = typename Driver::Dependencies; };
+      template <typename DependingDriver, typename Driver> using DependsOn = Contains<typename GetDependencies<DependingDriver>::Result, Driver>;
+      
       template <typename DriverList>
       struct ExpandDependencies {
         template <typename Driver> using Expand = Append<typename ExpandDependencies<typename GetDependencies<Driver>::Result>::Result, Driver>;
@@ -33,7 +35,9 @@ namespace CppMeta {
       template <typename Driver>
       struct Configuration {
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
-        using DriversAndMachines = typename Concat<typename After<Drivers, Driver>::Result, Machines>::Result;
+        template <typename OtherDriver> using DependsOnDriver = DependsOn<OtherDriver, Driver>;
+        using DependentDrivers = typename Select<Drivers, DependsOnDriver>::Result;
+        using DriversAndMachines = typename Concat<DependentDrivers, Machines>::Result;
         template <typename DriverOrMachine> using ConfiguresDriver = CanEval<typename DriverOrMachine::template Configure<Driver, DefaultConfiguration>>;
         using Configurers = typename Select<DriversAndMachines, ConfiguresDriver>::Result;
         template <typename Memo, typename Configurer> using AddConfiguration = typename Configurer::template Configure<Driver, Memo>;
