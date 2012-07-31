@@ -84,6 +84,14 @@ namespace CppMeta {
   template <typename Type, typename... Args> using HasBoolCallOperator = HasCallOperator<Type, bool, Args...>;
   template <typename Type, typename... Args> using HasVoidCallOperator = HasCallOperator<Type, void, Args...>;
   
+  template <typename Type>
+  struct IsClass {
+    struct Yes; struct No;
+    template <typename U> static Yes& test(int U::*);
+    template <typename U> static No& test(...);
+    using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
+  };
+  
   struct DoNothing { template <typename... Args> void operator()(Args...) { } };
   
   template <typename Predicate, typename ActionIfTrue, typename ActionIfFalse = DoNothing>

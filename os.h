@@ -29,6 +29,16 @@ namespace CppMeta {
       
       template <typename Event>
       static void post() { Post<Event>()(); }
+      
+      template <typename Driver>
+      struct Configuration {
+        using DefaultConfiguration = typename Driver::DefaultConfiguration;
+        using DriversAndMachines = typename Concat<typename After<Drivers, Driver>::Result, Machines>::Result;
+        template <typename DriverOrMachine> using ConfiguresDriver = CanEval<typename DriverOrMachine::template Configure<Driver, DefaultConfiguration>>;
+        using Configurers = typename Select<DriversAndMachines, ConfiguresDriver>::Result;
+        template <typename Memo, typename Configurer> using AddConfiguration = typename Configurer::template Configure<Driver, Memo>;
+        using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
+      };
     };
     
     template <typename Kernel, typename Interrupts>

@@ -68,6 +68,10 @@ namespace CppMeta {
       static_assert(!HasBoolCallOperator<VoidReturn>::Result::value, "failed");
       static_assert( HasBoolCallOperator<BoolReturn>::Result::value, "failed");
       
+      struct SomeClass;
+      static_assert( IsClass<SomeClass>::Result::value, "failed");
+      static_assert(!IsClass<int>::Result::value, "failed");
+      
       int x;
       struct AddToX { void operator()(int y) { x += y; } };
       struct Add2ToX { void operator()() { x += 2; } };
@@ -140,10 +144,14 @@ namespace CppMeta {
       static_assert(Same<Flatten<List<int, List<char, bool>, float>>::Result, List<int, char, bool, float>>::Result::value, "failed");
       static_assert(Same<Flatten<List<int, List<bool, List<char, long>, List<double, List<float>>>>>::Result, List<int, bool, char, long, double, float>>::Result::value, "failed");
 
-      static_assert(Same<Before<List<int, char, bool, float>, Int<3>>::Result, List<int, char, bool>>::Result::value, "failed");
-      static_assert(Same<After<List<int, char, bool, float>, Int<1>>::Result, List<bool, float>>::Result::value, "failed");
-      static_assert(Same<UpTo<List<int, char, bool, float>, bool>::Result, List<int, char>>::Result::value, "failed");
-      static_assert(Same<UpTo<List<int, char, bool, float>, int>::Result, List<>>::Result::value, "failed");
+      static_assert(Same<BeforeIndex<List<int, char, bool, float>, Int<3>>::Result, List<int, char, bool>>::Result::value, "failed");
+      static_assert(Same<BeforeIndex<List<int, char, bool, float>, Int<0>>::Result, List<>>::Result::value, "failed");
+      static_assert(Same<AfterIndex<List<int, char, bool, float>, Int<1>>::Result, List<bool, float>>::Result::value, "failed");
+      static_assert(Same<AfterIndex<List<int, char, bool, float>, Int<3>>::Result, List<>>::Result::value, "failed");
+      static_assert(Same<Before<List<int, char, bool, float>, float>::Result, List<int, char, bool>>::Result::value, "failed");
+      static_assert(Same<Before<List<int, char, bool, float>, int>::Result, List<>>::Result::value, "failed");
+      static_assert(Same<After<List<int, char, bool, float>, char>::Result, List<bool, float>>::Result::value, "failed");
+      static_assert(Same<After<List<int, char, bool, float>, float>::Result, List<>>::Result::value, "failed");
 
       using Unsorted = List<Int<1>, Int<6>, Int<0>, Int<4>, Int<3>, Int<2>, Int<5>>;
       using Sorted   = List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>, Int<5>, Int<6>>;

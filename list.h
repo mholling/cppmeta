@@ -120,27 +120,33 @@ namespace CppMeta {
   template <>
   struct Flatten<List<>> { using Result = List<>; };
   
-  template <typename L, typename IndexOrElement> struct Before;
+  template <typename L, typename IndexOrElement> struct BeforeIndex;
   template <typename Index, typename Head, typename... Tail>
-  struct Before<List<Head, Tail...>, Index> { using Result = typename Prepend<Head, typename Before<List<Tail...>, typename Decrement<Index>::Result>::Result>::Result; };
+  struct BeforeIndex<List<Head, Tail...>, Index> { using Result = typename Prepend<Head, typename BeforeIndex<List<Tail...>, typename Decrement<Index>::Result>::Result>::Result; };
   template <typename Head, typename... Tail>
-  struct Before<List<Head, Tail...>, Int<0>> { using Result = List<>; };
+  struct BeforeIndex<List<Head, Tail...>, Int<0>> { using Result = List<>; };
   template <>
-  struct Before<List<>, Int<0>> { using Result = List<>; };
+  struct BeforeIndex<List<>, Int<0>> { using Result = List<>; };
   
-  template <typename L, typename Index> struct After;
+  template <typename L, typename Index> struct AfterIndex;
   template <typename Head, typename... Tail, typename Index>
-  struct After<List<Head, Tail...>, Index> { using Result = typename After<List<Tail...>, typename Decrement<Index>::Result>::Result; };
+  struct AfterIndex<List<Head, Tail...>, Index> { using Result = typename AfterIndex<List<Tail...>, typename Decrement<Index>::Result>::Result; };
   template <typename Head, typename... Tail>
-  struct After<List<Head, Tail...>, Int<-1>> { using Result = List<Head, Tail...>; };
+  struct AfterIndex<List<Head, Tail...>, Int<-1>> { using Result = List<Head, Tail...>; };
   template <>
-  struct After<List<>, Int<-1>> { using Result = List<>; };
+  struct AfterIndex<List<>, Int<-1>> { using Result = List<>; };
   
-  template <typename L, typename Type> struct UpTo;
+  template <typename L, typename Type> struct Before;
   template <typename Head, typename... Tail, typename Type>
-  struct UpTo<List<Head, Tail...>, Type> { using Result = typename Prepend<Head, typename UpTo<List<Tail...>, Type>::Result>::Result; };
+  struct Before<List<Head, Tail...>, Type> { using Result = typename Prepend<Head, typename Before<List<Tail...>, Type>::Result>::Result; };
   template <typename Type, typename... Tail>
-  struct UpTo<List<Type, Tail...>, Type> { using Result = List<>; };
+  struct Before<List<Type, Tail...>, Type> { using Result = List<>; };
+  
+  template <typename L, typename Type> struct After;
+  template <typename Head, typename... Tail, typename Type>
+  struct After<List<Head, Tail...>, Type> { using Result = typename After<List<Tail...>, Type>::Result; };
+  template <typename Type, typename... Tail>
+  struct After<List<Type, Tail...>, Type> { using Result = List<Tail...>; };
   
   template <typename L, template <typename, typename> class LessThan>
   struct Sort {
@@ -155,8 +161,8 @@ namespace CppMeta {
     template <typename... Elements> struct Merge<List<Elements...>, List<>> { using Result = List<Elements...>; };
     template <typename... Elements> struct Merge<List<>, List<Elements...>> { using Result = List<Elements...>; };
     
-    using Left = typename Before<L, Int<(Length<L>::Result::value+1)/2>>::Result;
-    using Right = typename  After<L, Int<(Length<L>::Result::value-1)/2>>::Result;
+    using Left = typename BeforeIndex<L, Int<(Length<L>::Result::value+1)/2>>::Result;
+    using Right = typename AfterIndex<L, Int<(Length<L>::Result::value-1)/2>>::Result;
     using Result = typename Merge<typename Sort<Left, LessThan>::Result, typename Sort<Right, LessThan>::Result>::Result;
   };
   template <template <typename, typename> class LessThan>

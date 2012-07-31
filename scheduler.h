@@ -30,7 +30,7 @@ namespace CppMeta {
       template <typename Machine>
       struct RunMachine {
         using Result = RunMachine;
-        using PreemptingMachines = typename UpTo<Machines, Machine>::Result;
+        using PreemptingMachines = typename Before<Machines, Machine>::Result;
         void operator()() {
           Context::prepare(run<Context, Machines, PreemptingMachines>);
           while (Dispatchers<Machine>::any()) { Dispatchers<Machine>::dequeue()(); }
@@ -51,7 +51,7 @@ namespace CppMeta {
       template <typename Machine>
       struct InitialiseMachine {
         using Result = InitialiseMachine;
-        using PreemptingMachines = typename UpTo<Machines, Machine>::Result;
+        using PreemptingMachines = typename Before<Machines, Machine>::Result;
         void operator()() {
           Context::prepare(run<Context, Machines, PreemptingMachines>);
           HFSM::Initialise<Kernel, Machine>()();
