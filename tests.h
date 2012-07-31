@@ -535,8 +535,8 @@ namespace CppMeta {
       }
     }
     namespace ForScheduler {
-      unsigned int actions;
-      void action(int n) { actions *= 10; actions += n; }
+      unsigned int action_order;
+      void action(int n) { action_order *= 10; action_order += n; }
       
       struct E1; struct E2; struct E3; struct E4; struct E5;
       
@@ -584,29 +584,39 @@ namespace CppMeta {
       void test() {
         Scheduler::Initialise<Kernel, Context, Machines>()();
         
-        actions = 0;
+        action_order = 0;
         Kernel::post<E1>();
-        assert(actions == 15);
+        assert(action_order == 15);
         
-        actions = 0;
+        action_order = 0;
         Kernel::post<E2>();
-        assert(actions == 26);
+        assert(action_order == 26);
         
-        actions = 0;
+        action_order = 0;
         Kernel::post<E5>();
-        assert(actions == 37);
+        assert(action_order == 37);
       }
     }
     namespace ForOS {
-      struct Context;
+      unsigned int init_order;
+      void init(int n) { init_order *= 10; init_order += n; }
+      
+      struct Context {
+        static void (*preempt)();
+        static void prepare(void (*p)()) { preempt = p; }
+        static void push() { preempt(); }
+        static void pop() { }
+        static void enable() { }
+        static void waitloop() { }
+      };
+      void (*Context::preempt)();
       
       struct Irq1; struct Irq2; struct Irq3;
       bool d1_irq3_called, d2_irq3_called, d3_irq1_called;
       
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
-        using Dependencies = List<>;
-        template <typename Kernel> struct Initialise { void operator()() { } };
+        template <typename Kernel> struct Initialise { void operator()() { init(1); } };
       };
       template <typename Kernel>
       struct D1::Handle<Kernel, Irq3> { void operator()() { d1_irq3_called = true; } };
@@ -614,7 +624,7 @@ namespace CppMeta {
       struct D2 {
         template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D1>;
-        template <typename Kernel> struct Initialise { void operator()() { } };
+        template <typename Kernel> struct Initialise { void operator()() { init(2); } };
       };
       template <typename Kernel>
       struct D2::Handle<Kernel, Irq3> { void operator()() { d2_irq3_called = true; } };
@@ -622,24 +632,47 @@ namespace CppMeta {
       struct D3 {
         template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D1>;
-        template <typename Kernel> struct Initialise { void operator()() { } };
+        template <typename Kernel> struct Initialise { void operator()() { init(3); } };
       };
       template <typename Kernel>
       struct D3::Handle<Kernel, Irq1> { void operator()() { d3_irq1_called = true; } };
       
       struct D4 {
-        template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D2>;
-        template <typename Kernel> struct Initialise { void operator()() { } };
+        template <typename Kernel> struct Initialise { void operator()() { init(4); } };
       };
       
-      using Drivers = List<D3, D4>;
-      using Machines = List<>;
-      using Interrupts = List<Irq1, Irq2, Irq3>;
-      using Kernel = OS::Kernel<Context, Drivers, Machines>;
-      using VectorTable = OS::VectorTable<Kernel, Interrupts>;
+      struct M1 {
+        struct S;
+        using States = Tree<S>;
+        using Dependencies = List<D3>;
+        template <typename, typename> struct Enter;
+        template <typename, typename> struct Exit;
+        template <typename, typename, typename, typename> struct Guard;
+        template <typename, typename, typename, typename> struct Action;
+      };
+      struct M2 {
+        struct S;
+        using States = Tree<S>;
+        using Dependencies = List<D4>;
+        template <typename, typename> struct Enter;
+        template <typename, typename> struct Exit;
+        template <typename, typename, typename, typename> struct Guard;
+        template <typename, typename, typename, typename> struct Action;
+      };
+      struct M3 {
+        struct S;
+        using States = Tree<S>;
+        template <typename, typename> struct Enter;
+        template <typename, typename> struct Exit;
+        template <typename, typename, typename, typename> struct Guard;
+        template <typename, typename, typename, typename> struct Action;
+      };
       
-      static_assert(Same<Kernel::Drivers, List<D1, D3, D2, D4>>::Result::value, "failed");
+      using Machines = List<M1, M2, M3>;
+      using Kernel = OS::Kernel<Context, Machines>;
+      using Interrupts = List<Irq1, Irq2, Irq3>;
+      using VectorTable = OS::VectorTable<Kernel, Interrupts>;
       
       VectorTable vector_table;
       void (** vectors)() = reinterpret_cast<void (**)()>(&vector_table);
@@ -656,6 +689,10 @@ namespace CppMeta {
         d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
         vectors[2]();
         assert(!d3_irq1_called && d1_irq3_called && d2_irq3_called);
+        
+        init_order = 0;
+        Kernel::run();
+        assert(init_order == 1324);
       }
     }
   }

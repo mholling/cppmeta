@@ -1,23 +1,33 @@
 namespace CppMeta {
   namespace OS {
-    template <typename Context, typename RequestedDrivers, typename Machines>
+    template <typename DriverOrMachine>
+    struct HasDependencies {
+      struct Yes; struct No;
+      template <typename U> static Yes& test(typename U::Dependencies *);
+      template <typename>   static No&  test(...);
+      using Result = typename Same<decltype(test<DriverOrMachine>(0)), Yes&>::Result;
+    };
+    template <typename DriverOrMachine> struct GetDependenciesUnsafely { using Result = typename DriverOrMachine::Dependencies; };
+    template <typename DriverOrMachine> using GetDependencies = If<typename HasDependencies<DriverOrMachine>::Result, GetDependenciesUnsafely<DriverOrMachine>, List<>>;
+    template <typename DriverOrMachine, typename Driver> using DependsOn = Contains<typename GetDependencies<DriverOrMachine>::Result, Driver>;
+    
+    template <typename Dependents>
+    struct ExpandDependencies {
+      template <typename Dependent> using Expand = Append<typename ExpandDependencies<typename GetDependencies<Dependent>::Result>::Result, Dependent>;
+      using Result = typename Unique<typename Flatten<typename Map<Dependents, Expand>::Result>::Result>::Result;
+    };
+    
+    template <typename Context, typename Machines>
     struct Kernel {
-      template <typename Driver> struct GetDependencies { using Result = typename Driver::Dependencies; };
-      template <typename DependingDriver, typename Driver> using DependsOn = Contains<typename GetDependencies<DependingDriver>::Result, Driver>;
-      
-      template <typename DriverList>
-      struct ExpandDependencies {
-        template <typename Driver> using Expand = Append<typename ExpandDependencies<typename GetDependencies<Driver>::Result>::Result, Driver>;
-        using Result = typename Unique<typename Flatten<typename Map<DriverList, Expand>::Result>::Result>::Result;
-      };
-      using Drivers = typename ExpandDependencies<RequestedDrivers>::Result;
+      using DirectDependencies = typename Unique<typename Flatten<typename Map<Machines, GetDependencies>::Result>::Result>::Result;
+      using Drivers = typename ExpandDependencies<DirectDependencies>::Result;
       
       struct Run {
         template <typename Driver> struct Initialise { using Result = typename Driver::template Initialise<Kernel>; };
         void operator ()() {
           Each<Drivers, Initialise>()();
           Scheduler::Initialise<Kernel, Context, Machines>()();
-          while(true) ; // TODO;
+          Context::waitloop();
         }
       };
       
@@ -35,11 +45,18 @@ namespace CppMeta {
       template <typename Driver>
       struct Configuration {
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
-        template <typename OtherDriver> using DependsOnDriver = DependsOn<OtherDriver, Driver>;
-        using DependentDrivers = typename Select<Drivers, DependsOnDriver>::Result;
-        using DriversAndMachines = typename Concat<DependentDrivers, Machines>::Result;
+        template <typename DriverOrMachine>
+        struct HasConfigureTemplate {
+          struct Yes; struct No;
+          template <typename U> static Yes& test(typename U::template Configure<Driver, DefaultConfiguration> *);
+          template <typename>   static No&  test(...);
+          using Result = typename Same<decltype(test<DriverOrMachine>(0)), Yes&>::Result;
+        };
+        using Candidates = typename Select<typename Concat<Drivers, Machines>::Result, HasConfigureTemplate>::Result;
+        template <typename DriverOrMachine> using DependsOnDriver = DependsOn<DriverOrMachine, Driver>;
+        using Dependents = typename Select<Candidates, DependsOnDriver>::Result;
         template <typename DriverOrMachine> using ConfiguresDriver = CanEval<typename DriverOrMachine::template Configure<Driver, DefaultConfiguration>>;
-        using Configurers = typename Select<DriversAndMachines, ConfiguresDriver>::Result;
+        using Configurers = typename Select<Dependents, ConfiguresDriver>::Result;
         template <typename Memo, typename Configurer> using AddConfiguration = typename Configurer::template Configure<Driver, Memo>;
         using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
       };
@@ -49,9 +66,17 @@ namespace CppMeta {
     struct MakeVectorTable {
       template <typename Interrupt>
       struct Handler {
+        template <typename Driver>
+        struct HasHandleTemplate {
+          struct Yes; struct No;
+          template <typename U> static Yes& test(typename U::template Handle<Kernel, Interrupt> *);
+          template <typename>   static No&  test(...);
+          using Result = typename Same<decltype(test<Driver>(0)), Yes&>::Result;
+        };
+        using CandidateDrivers = typename Select<typename Kernel::Drivers, HasHandleTemplate>::Result;
         template <typename Driver> using HandlesInterrupt = HasVoidCallOperator<typename Driver::template Handle<Kernel, Interrupt>>;
+        using HandlingDrivers = typename Select<CandidateDrivers, HandlesInterrupt>::Result;
         template <typename Driver> struct GetHandler { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
-        using HandlingDrivers = typename Select<typename Kernel::Drivers, HandlesInterrupt>::Result;
         void operator()() { Each<HandlingDrivers, GetHandler>()(); }
       };
       
