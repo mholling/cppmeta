@@ -29,16 +29,6 @@ namespace CppMeta {
       
       template <typename Event>
       static void post() { Post<Event>()(); }
-      
-      template <typename Driver, typename... Types>
-      struct Call {
-        using Result = Call;
-        template <typename... Args>
-        void operator()(Args... args) { typename Driver::template Call<Kernel, Types...>()(args...); }
-      };
-
-      template <typename Driver, typename... Types, typename... Args>
-      static void call(Args... args) { Call<Driver, Types...>()(args...); }
     };
     
     template <typename Kernel, typename Interrupts>
