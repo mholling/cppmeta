@@ -9,6 +9,7 @@ namespace CppMeta {
     };
     template <typename DriverOrMachine> struct GetDependenciesUnsafely { using Result = typename DriverOrMachine::Dependencies; };
     template <typename DriverOrMachine> using GetDependencies = If<typename HasDependencies<DriverOrMachine>::Result, GetDependenciesUnsafely<DriverOrMachine>, List<>>;
+    
     template <typename DriverOrMachine, typename Driver> using DependsOn = Contains<typename GetDependencies<DriverOrMachine>::Result, Driver>;
     
     template <typename Dependents>
@@ -45,16 +46,18 @@ namespace CppMeta {
       template <typename Driver>
       struct MakeConfiguration {
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
-        template <typename DriverOrMachine>
+        template <typename Candidate>
         struct HasConfigureTemplate {
           struct Yes; struct No;
           template <typename U> static Yes& test(typename U::template Configure<Driver, DefaultConfiguration> *);
           template <typename>   static No&  test(...);
-          using Result = typename Same<decltype(test<DriverOrMachine>(0)), Yes&>::Result;
+          using Result = typename Same<decltype(test<Candidate>(0)), Yes&>::Result;
         };
         using Candidates = typename Select<typename Concat<Drivers, Machines>::Result, HasConfigureTemplate>::Result;
-        template <typename DriverOrMachine> using DependsOnDriver = DependsOn<DriverOrMachine, Driver>;
-        using Configurers = typename Select<Candidates, DependsOnDriver>::Result;
+        template <typename Candidate> using DependsOnDriver = DependsOn<Candidate, Driver>;
+        using Dependents = typename Select<Candidates, DependsOnDriver>::Result;
+        template <typename Candidate> using ConfiguresDriver = IsComplete<typename Candidate::template Configure<Driver, DefaultConfiguration>>;
+        using Configurers = typename Select<Dependents, ConfiguresDriver>::Result;
         template <typename Memo, typename Configurer> struct AddConfiguration { using Result = typename Configurer::template Configure<Driver, Memo>; };
         using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
       };

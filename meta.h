@@ -88,9 +88,19 @@ namespace CppMeta {
   struct IsClass {
     struct Yes; struct No;
     template <typename U> static Yes& test(int U::*);
-    template <typename U> static No& test(...);
+    template <typename U> static No&  test(...);
     using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
   };
+  
+  template <typename Type>
+  struct IsComplete {
+    struct Yes; struct No;
+    template <typename U> static Yes& test(int(*)[sizeof(U)]);
+    template <typename>   static No&  test(...);
+    using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
+  };
+  
+  template <typename Type> using IsIncomplete = Not<typename IsComplete<Type>::Result>;
   
   struct DoNothing { template <typename... Args> void operator()(Args...) { } };
   

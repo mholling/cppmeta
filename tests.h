@@ -72,6 +72,13 @@ namespace CppMeta {
       static_assert( IsClass<SomeClass>::Result::value, "failed");
       static_assert(!IsClass<int>::Result::value, "failed");
       
+      struct CompleteClass { };
+      struct IncompleteClass;
+      static_assert( IsComplete<CompleteClass>::Result::value, "failed");
+      static_assert(!IsComplete<IncompleteClass>::Result::value, "failed");
+      static_assert(!IsIncomplete<CompleteClass>::Result::value, "failed");
+      static_assert( IsIncomplete<IncompleteClass>::Result::value, "failed");
+      
       int x;
       struct AddToX { void operator()(int y) { x += y; } };
       struct Add2ToX { void operator()() { x += 2; } };
@@ -649,12 +656,12 @@ namespace CppMeta {
       struct M1 {
         struct S;
         using States = Tree<S>;
-        using Dependencies = List<D3>;
+        using Dependencies = List<D3, D1>;
         template <typename, typename> struct Enter;
         template <typename, typename> struct Exit;
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
-        template <typename, typename Config> struct Configure : Config { };
+        template <typename, typename Config> struct Configure;
       };
       template <typename Config> struct M1::Configure<D3, Config> : Config { static constexpr int bitfield = Config::bitfield | 2; };
       
@@ -671,12 +678,12 @@ namespace CppMeta {
       struct M3 {
         struct S;
         using States = Tree<S>;
-        using Dependencies = List<D4, D3>;
+        using Dependencies = List<D3, D4>;
         template <typename, typename> struct Enter;
         template <typename, typename> struct Exit;
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
-        template <typename, typename Config> struct Configure : Config { };
+        template <typename, typename Config> struct Configure;
       };
       template <typename Config> struct M3::Configure<D3, Config> : Config { static constexpr int bitfield = Config::bitfield | 4; };
       template <typename Config> struct M3::Configure<D4, Config> : Config { static constexpr bool m3flag = true; using Types = typename Append<typename Config::Types, bool>::Result; };
