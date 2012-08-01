@@ -66,20 +66,20 @@ namespace CppMeta {
       }
     };
     
-    // // Example Kernel class for Cortex M3:
+    // // Example Context class for Cortex M3:
     //
-    // struct Kernel {
+    // struct Context {
     //   static void (*preempt)();
-    //   static void prepare_context(void (*p)()) { preempt = p; }
-    //   static void push_context() { ((SCB_Type *) SCB_BASE)->ICSR = SCB_ICSR_PENDSVSET_Msk; }
-    //   static void pop_context() { __asm volatile ("svc 0x01"); }
-    //   static void enable_contexts() { __asm volatile ("cpsie i"); }
+    //   static void prepare(void (*p)()) { preempt = p; }
+    //   static void push() { ((SCB_Type *) SCB_BASE)->ICSR = SCB_ICSR_PENDSVSET_Msk; }
+    //   static void pop() { __asm volatile ("svc 0x01"); }
+    //   static void enable() { __asm volatile ("cpsie i"); }
     // };
-    // void (*Kernel::preempt)();
+    // void (*Context::preempt)();
     // 
     // __attribute__ ((naked)) void handler() { // for PendSV_IRQ
     //   register uint32_t xpsr      asm("r1") = 0x01000000;
-    //   register void (**preempt)() asm("r2") = &Kernel::Context::preempt;
+    //   register void (**preempt)() asm("r2") = &Context::preempt;
     //   __asm volatile (
     //     "ldr    r0, [%[preempt]] \n\t"
     //     "push   {r0, %[xpsr]}    \n\t"
