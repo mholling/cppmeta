@@ -45,23 +45,21 @@ namespace CppMeta {
       
       template <typename Driver>
       struct MakeConfiguration {
+        template <typename Candidate> using DependsOnDriver = DependsOn<Candidate, Driver>;
+        using Candidates = typename Select<typename Concat<Drivers, Machines>::Result, DependsOnDriver>::Result;
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
         template <typename Candidate>
-        struct HasConfigureTemplate {
+        struct ConfiguresDriver {
           struct Yes; struct No;
-          template <typename U> static Yes& test(typename U::template Configure<Driver, DefaultConfiguration> *);
+          template <typename U> static Yes& test(int(*)[sizeof(typename U::template Configure<Driver, DefaultConfiguration>)]);
           template <typename>   static No&  test(...);
           using Result = typename Same<decltype(test<Candidate>(0)), Yes&>::Result;
         };
-        using Candidates = typename Select<typename Concat<Drivers, Machines>::Result, HasConfigureTemplate>::Result;
-        template <typename Candidate> using DependsOnDriver = DependsOn<Candidate, Driver>;
-        using Dependents = typename Select<Candidates, DependsOnDriver>::Result;
-        template <typename Candidate> using ConfiguresDriver = IsComplete<typename Candidate::template Configure<Driver, DefaultConfiguration>>;
-        using Configurers = typename Select<Dependents, ConfiguresDriver>::Result;
+        using Configurers = typename Select<Candidates, ConfiguresDriver>::Result;
         template <typename Memo, typename Configurer> struct AddConfiguration { using Result = typename Configurer::template Configure<Driver, Memo>; };
         using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
       };
-    
+      
       template <typename Driver> using Configuration = typename MakeConfiguration<Driver>::Result;
     };
     
@@ -70,15 +68,13 @@ namespace CppMeta {
       template <typename Interrupt>
       struct Handler {
         template <typename Driver>
-        struct HasHandleTemplate {
+        struct HandlesInterrupt {
           struct Yes; struct No;
-          template <typename U> static Yes& test(typename U::template Handle<Kernel, Interrupt> *);
+          template <typename U> static Yes& test(int(*)[sizeof(typename U::template Handle<Kernel, Interrupt>)]);
           template <typename>   static No&  test(...);
           using Result = typename Same<decltype(test<Driver>(0)), Yes&>::Result;
         };
-        using CandidateDrivers = typename Select<typename Kernel::Drivers, HasHandleTemplate>::Result;
-        template <typename Driver> using HandlesInterrupt = HasVoidCallOperator<typename Driver::template Handle<Kernel, Interrupt>>;
-        using HandlingDrivers = typename Select<CandidateDrivers, HandlesInterrupt>::Result;
+        using HandlingDrivers = typename Select<typename Kernel::Drivers, HandlesInterrupt>::Result;
         template <typename Driver> struct GetHandler { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
         void operator()() { Each<HandlingDrivers, GetHandler>()(); }
       };
