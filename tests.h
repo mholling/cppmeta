@@ -617,6 +617,7 @@ namespace CppMeta {
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
         template <typename Kernel> struct Initialise { void operator()() { init(1); } };
+        struct DefaultConfiguration { static constexpr bool defaultflag = true; };
       };
       template <typename Kernel>
       struct D1::Handle<Kernel, Irq3> { void operator()() { d1_irq3_called = true; } };
@@ -624,6 +625,7 @@ namespace CppMeta {
       struct D2 {
         template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D1>;
+        struct DefaultConfiguration { };
         template <typename Kernel> struct Initialise { void operator()() { init(2); } };
       };
       template <typename Kernel>
@@ -632,6 +634,7 @@ namespace CppMeta {
       struct D3 {
         template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D1>;
+        struct DefaultConfiguration { static constexpr int bitfield = 1; };
         template <typename Kernel> struct Initialise { void operator()() { init(3); } };
       };
       template <typename Kernel>
@@ -639,6 +642,7 @@ namespace CppMeta {
       
       struct D4 {
         using Dependencies = List<D2>;
+        struct DefaultConfiguration { using Types = List<int>; };
         template <typename Kernel> struct Initialise { void operator()() { init(4); } };
       };
       
@@ -650,7 +654,10 @@ namespace CppMeta {
         template <typename, typename> struct Exit;
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
+        template <typename, typename Config> struct Configure : Config { };
       };
+      template <typename Config> struct M1::Configure<D3, Config> : Config { static constexpr int bitfield = Config::bitfield | 2; };
+      
       struct M2 {
         struct S;
         using States = Tree<S>;
@@ -660,17 +667,32 @@ namespace CppMeta {
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
       };
+      
       struct M3 {
         struct S;
         using States = Tree<S>;
+        using Dependencies = List<D4, D3>;
         template <typename, typename> struct Enter;
         template <typename, typename> struct Exit;
         template <typename, typename, typename, typename> struct Guard;
         template <typename, typename, typename, typename> struct Action;
+        template <typename, typename Config> struct Configure : Config { };
       };
+      template <typename Config> struct M3::Configure<D3, Config> : Config { static constexpr int bitfield = Config::bitfield | 4; };
+      template <typename Config> struct M3::Configure<D4, Config> : Config { static constexpr bool m3flag = true; using Types = typename Append<typename Config::Types, bool>::Result; };
       
       using Machines = List<M1, M2, M3>;
       using Kernel = OS::Kernel<Context, Machines>;
+      
+      using D1Config = Kernel::Configuration<D1>;
+      using D3Config = Kernel::Configuration<D3>;
+      using D4Config = Kernel::Configuration<D4>;
+      
+      static_assert(D1Config::defaultflag == true, "failed");
+      static_assert(D3Config::bitfield == 7, "failed");
+      static_assert(D4Config::m3flag == true, "failed");
+      static_assert(Same<D4Config::Types, List<int, bool>>::Result::value, "failed");
+      
       using Interrupts = List<Irq1, Irq2, Irq3>;
       using VectorTable = OS::VectorTable<Kernel, Interrupts>;
       

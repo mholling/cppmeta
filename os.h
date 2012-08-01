@@ -43,7 +43,7 @@ namespace CppMeta {
       static void post() { Post<Event>()(); }
       
       template <typename Driver>
-      struct Configuration {
+      struct MakeConfiguration {
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
         template <typename DriverOrMachine>
         struct HasConfigureTemplate {
@@ -54,12 +54,12 @@ namespace CppMeta {
         };
         using Candidates = typename Select<typename Concat<Drivers, Machines>::Result, HasConfigureTemplate>::Result;
         template <typename DriverOrMachine> using DependsOnDriver = DependsOn<DriverOrMachine, Driver>;
-        using Dependents = typename Select<Candidates, DependsOnDriver>::Result;
-        template <typename DriverOrMachine> using ConfiguresDriver = CanEval<typename DriverOrMachine::template Configure<Driver, DefaultConfiguration>>;
-        using Configurers = typename Select<Dependents, ConfiguresDriver>::Result;
-        template <typename Memo, typename Configurer> using AddConfiguration = typename Configurer::template Configure<Driver, Memo>;
+        using Configurers = typename Select<Candidates, DependsOnDriver>::Result;
+        template <typename Memo, typename Configurer> struct AddConfiguration { using Result = typename Configurer::template Configure<Driver, Memo>; };
         using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
       };
+    
+      template <typename Driver> using Configuration = typename MakeConfiguration<Driver>::Result;
     };
     
     template <typename Kernel, typename Interrupts>
