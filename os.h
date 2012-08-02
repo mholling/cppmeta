@@ -1,6 +1,10 @@
 #ifndef CPPMETA_OS_H
 #define CPPMETA_OS_H
 
+#include "meta.h"
+#include "list.h"
+#include "scheduler.h"
+
 namespace CppMeta {
   namespace OS {
     template <typename DriverOrMachine>

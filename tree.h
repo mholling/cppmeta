@@ -1,6 +1,9 @@
 #ifndef CPPMETA_TREE_H
 #define CPPMETA_TREE_H
 
+#include "meta.h"
+#include "list.h"
+
 namespace CppMeta {
   template <typename Node, typename... Branches> struct Tree;
   

@@ -1,6 +1,11 @@
 #ifndef CPPMETA_SCHEDULER_H
 #define CPPMETA_SCHEDULER_H
 
+#include "meta.h"
+#include "list.h"
+#include "queue.h"
+#include "hfsm.h"
+
 namespace CppMeta {
   namespace Scheduler {
     using Dispatcher = void (*)();

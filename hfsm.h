@@ -1,6 +1,10 @@
 #ifndef CPPMETA_HFSM_H
 #define CPPMETA_HFSM_H
 
+#include "meta.h"
+#include "list.h"
+#include "tree.h"
+
 namespace CppMeta {
   namespace HFSM {
     template <typename Machine>

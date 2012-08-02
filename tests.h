@@ -1,6 +1,16 @@
 #ifndef CPPMETA_TESTS_H
 #define CPPMETA_TESTS_H
 
+#include <assert.h>
+#include <cstdio>
+#include "meta.h"
+#include "list.h"
+#include "tree.h"
+#include "queue.h"
+#include "hfsm.h"
+#include "scheduler.h"
+#include "os.h"
+
 namespace CppMeta {
   namespace Tests {
     namespace Basics {
@@ -736,6 +746,15 @@ namespace CppMeta {
         Kernel::run();
         assert(init_order == 1324);
       }
+    }
+    
+    void test() {
+      Basics::test();
+      ForLists::test();
+      ForQueues::test();
+      ForHFSMs::test();
+      ForScheduler::test();
+      ForOS::test();
     }
   }
 }

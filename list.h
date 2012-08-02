@@ -1,6 +1,8 @@
 #ifndef CPPMETA_LIST_H
 #define CPPMETA_LIST_H
 
+#include "meta.h"
+
 namespace CppMeta {
   template <typename...> struct List;
   
