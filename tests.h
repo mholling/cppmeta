@@ -711,7 +711,7 @@ namespace CppMeta {
       static_assert(Same<D4Config::Types, List<int, bool>>::Result::value, "failed");
       
       using Interrupts = List<Irq1, Irq2, Irq3>;
-      using VectorTable = OS::VectorTable<Kernel, Interrupts>;
+      using VectorTable = Kernel::VectorTable<Interrupts>;
       
       VectorTable vector_table;
       void (** vectors)() = reinterpret_cast<void (**)()>(&vector_table);
