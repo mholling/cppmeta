@@ -65,34 +65,45 @@ namespace CppMeta {
         Context::push(); // flush out any events which were fired during initialisation
       }
     };
-    
-    // // Example Context class for Cortex M3:
-    //
-    // struct Context {
-    //   static void (*preempt)();
-    //   static void prepare(void (*p)()) { preempt = p; }
-    //   static void push() { ((SCB_Type *) SCB_BASE)->ICSR = SCB_ICSR_PENDSVSET_Msk; }
-    //   static void pop() { __asm volatile ("svc 0x01"); }
-    //   static void enable() { __asm volatile ("cpsie i"); }
-    // };
-    // void (*Context::preempt)();
-    // 
-    // __attribute__ ((naked)) void handler() { // for PendSV_IRQ
-    //   register uint32_t xpsr      asm("r1") = 0x01000000;
-    //   register void (**preempt)() asm("r2") = &Context::preempt;
-    //   __asm volatile (
-    //     "ldr    r0, [%[preempt]] \n\t"
-    //     "push   {r0, %[xpsr]}    \n\t"
-    //     "sub    sp, sp, #(6*4)   \n\t"
-    //     "bx     lr               \n\t" : : [xpsr] "r" (xpsr), [preempt] "r" (preempt) : "r0"
-    //   );
-    // };
-    // 
-    // __attribute__ ((naked)) void handler() { // for SVC_IRQ
-    //   __asm volatile (
-    //     "add    sp, sp, #(8*4) \n\t"
-    //     "bx     lr             \n\t"
-    //   );
-    // };
   }
 }
+
+// // Example Context driver for Cortex M3:
+// 
+// struct Context {
+//   static void (*preempt)();
+//   static void prepare(void (*p)()) { preempt = p; }
+//   static void push() { ((SCB_Type *) SCB_BASE)->ICSR = SCB_ICSR_PENDSVSET_Msk; }
+//   static void pop() { __asm volatile ("svc 0x01"); }
+//   static void enable() { __asm volatile ("cpsie i"); }
+//   __attribute__ ((noreturn))
+//   static void waitloop() { while (true) ; } // or: { while (true) __asm volatile ("wfi"); }
+//   template <typename Kernel> struct Initialise { void operator()() { } };
+//   template <typename Kernel, typename Interrupt> struct Handle;
+// };
+// void (*Context::preempt)();
+// 
+// template <typename Kernel>
+// struct Context::Handle<Kernel, PendSV_IRQ> {
+//   __attribute__ ((naked))
+//   static void handle() {
+//     register uint32_t xpsr      asm("r1") = 0x01000000;
+//     register void (**preempt)() asm("r2") = &preempt;
+//     __asm volatile (
+//       "ldr    r0, [%[preempt]] \n\t"
+//       "push   {r0, %[xpsr]}    \n\t"
+//       "sub    sp, sp, #(6*4)   \n\t"
+//       "bx     lr               \n\t" : : [xpsr] "r" (xpsr), [preempt] "r" (preempt) : "r0"
+//     );
+//   }
+// };
+// 
+// template <typename Kernel>
+// struct Context::Handle<Kernel, SVC_IRQ> {
+//   __attribute__ ((naked))
+//   static void handle() {
+//   __asm volatile (
+//     "add    sp, sp, #(8*4) \n\t"
+//     "bx     lr             \n\t"
+//   );
+// };
