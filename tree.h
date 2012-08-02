@@ -1,3 +1,6 @@
+#ifndef CPPMETA_TREE_H
+#define CPPMETA_TREE_H
+
 namespace CppMeta {
   template <typename Node, typename... Branches> struct Tree;
   
@@ -132,3 +135,5 @@ namespace CppMeta {
     using Result = typename Plus<typename Depth<Branch, Type1>::Result, typename Depth<Branch, Type2>::Result>::Result;
   };
 }
+
+#endif

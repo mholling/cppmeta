@@ -1,3 +1,6 @@
+#ifndef CPPMETA_OS_H
+#define CPPMETA_OS_H
+
 namespace CppMeta {
   namespace OS {
     template <typename DriverOrMachine>
@@ -113,3 +116,5 @@ namespace CppMeta {
     };
   }
 }
+
+#endif

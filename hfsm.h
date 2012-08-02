@@ -1,3 +1,6 @@
+#ifndef CPPMETA_HFSM_H
+#define CPPMETA_HFSM_H
+
 namespace CppMeta {
   namespace HFSM {
     template <typename Machine>
@@ -170,3 +173,5 @@ namespace CppMeta {
     };
   }
 }
+
+#endif

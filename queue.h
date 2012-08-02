@@ -1,3 +1,6 @@
+#ifndef CPPMETA_QUEUE_H
+#define CPPMETA_QUEUE_H
+
 namespace CppMeta {
   namespace Queue {
     template <typename...> struct Tuple;
@@ -53,3 +56,5 @@ namespace CppMeta {
     Node<Owner, Types...> Node<Owner, Types...>::Enqueue<vals...>::node(vals...);
   }
 }
+
+#endif

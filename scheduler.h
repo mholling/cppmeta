@@ -1,3 +1,6 @@
+#ifndef CPPMETA_SCHEDULER_H
+#define CPPMETA_SCHEDULER_H
+
 namespace CppMeta {
   namespace Scheduler {
     using Dispatcher = void (*)();
@@ -107,3 +110,5 @@ namespace CppMeta {
 //     "bx     lr             \n\t"
 //   );
 // };
+
+#endif

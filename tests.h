@@ -1,3 +1,6 @@
+#ifndef CPPMETA_TESTS_H
+#define CPPMETA_TESTS_H
+
 namespace CppMeta {
   namespace Tests {
     namespace Basics {
@@ -736,3 +739,5 @@ namespace CppMeta {
     }
   }
 }
+
+#endif

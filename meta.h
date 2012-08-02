@@ -1,3 +1,6 @@
+#ifndef CPPMETA_H
+#define CPPMETA_H
+
 namespace CppMeta {
   template <typename Type, Type t> struct Value { static constexpr Type value = t; };
   template <bool b> using Bool = Value<bool, b>;
@@ -110,3 +113,5 @@ namespace CppMeta {
     void operator()(Args... args) { typename If<Predicate, ActionIfTrue, ActionIfFalse>::Result()(args...); }
   };
 }
+
+#endif

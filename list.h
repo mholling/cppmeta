@@ -1,3 +1,6 @@
+#ifndef CPPMETA_LIST_H
+#define CPPMETA_LIST_H
+
 namespace CppMeta {
   template <typename...> struct List;
   
@@ -209,3 +212,5 @@ namespace CppMeta {
     bool operator ()(Args... args) { return false; }
   };
 }
+
+#endif
