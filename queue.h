@@ -6,13 +6,13 @@ namespace CppMeta {
       Type value;
       Tuple<Types...> values;
       Tuple(Type value, Types... values) : value(value), values(values...) { }
-      void get(Type &val, Types&... vals) { val = value; values.get(vals...); }
+      void get(Type &val, Types&... vals) const { val = value; values.get(vals...); }
     };
-    template <> struct Tuple<> { void get() { } };
+    template <> struct Tuple<> { void get() const { } };
     
     template <typename Owner, typename... Types>
     class Node {
-      Tuple<Types...> contents;
+      const Tuple<Types...> contents;
       
       using Pointer = Node *;
       static Pointer head;
