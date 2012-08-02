@@ -452,6 +452,11 @@ namespace CppMeta {
       template <> void Kernel::post<LeavingPause>() { leaving_pause = true; }
       template <> void Kernel::post<Activating>() { activating = true; }
       
+      struct NullMachine {
+        struct S1; struct S11;
+        using States = Tree<S1, Tree<S11>>;
+      };
+      
       void test() {
         bool test;
         
@@ -539,6 +544,9 @@ namespace CppMeta {
         HFSM::Dispatch<Kernel, VCR, PowerButton>()();
         assert(test = HFSM::CurrentState<VCR>::Test<VCR::Stopped>()());
         assert(activating);
+        
+        HFSM::Initialise<Kernel, NullMachine>()();
+        assert(test = HFSM::CurrentState<NullMachine>::Test<NullMachine::S11>()());
       }
     }
     namespace ForScheduler {
