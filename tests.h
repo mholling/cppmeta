@@ -619,7 +619,7 @@ namespace CppMeta {
       void (*Context::preempt)();
       
       struct Irq1; struct Irq2; struct Irq3;
-      bool d1_irq3_called, d2_irq3_called, d3_irq1_called;
+      bool d1_irq3_called, d2_irq2_called, d2_irq3_called, d3_irq1_called;
       
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
@@ -635,6 +635,8 @@ namespace CppMeta {
         struct DefaultConfiguration { };
         template <typename Kernel> struct Initialise { void operator()() { init(2); } };
       };
+      template <typename Kernel>
+      struct D2::Handle<Kernel, Irq2> { static void handle() { d2_irq2_called = true; } };
       template <typename Kernel>
       struct D2::Handle<Kernel, Irq3> { void operator()() { d2_irq3_called = true; } };
       
@@ -707,17 +709,17 @@ namespace CppMeta {
       void (** vectors)() = reinterpret_cast<void (**)()>(&vector_table);
       
       void test() {
-        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
+        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false; d2_irq2_called = false;
         vectors[0]();
-        assert(d3_irq1_called && !d1_irq3_called && !d2_irq3_called);
+        assert(d3_irq1_called && !d2_irq2_called && !d1_irq3_called && !d2_irq3_called);
         
-        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
+        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false; d2_irq2_called = false;
         vectors[1]();
-        assert(!d3_irq1_called && !d1_irq3_called && !d2_irq3_called);
+        assert(!d3_irq1_called && d2_irq2_called && !d1_irq3_called && !d2_irq3_called);
         
-        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false;
+        d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false; d2_irq2_called = false;
         vectors[2]();
-        assert(!d3_irq1_called && d1_irq3_called && d2_irq3_called);
+        assert(!d3_irq1_called && !d2_irq2_called && d1_irq3_called && d2_irq3_called);
         
         init_order = 0;
         Kernel::run();

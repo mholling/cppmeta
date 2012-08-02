@@ -66,7 +66,7 @@ namespace CppMeta {
     template <typename Kernel, typename Interrupts>
     struct MakeVectorTable {
       template <typename Interrupt>
-      struct Handler {
+      struct GetHandler {
         template <typename Driver>
         struct HandlesInterrupt {
           struct Yes; struct No;
@@ -75,18 +75,35 @@ namespace CppMeta {
           using Result = typename Same<decltype(test<Driver>(0)), Yes&>::Result;
         };
         using HandlingDrivers = typename Select<typename Kernel::Drivers, HandlesInterrupt>::Result;
-        template <typename Driver> struct GetHandler { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
-        void operator()() { Each<HandlingDrivers, GetHandler>()(); }
+        template <typename Driver> struct GetHandle { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
+        using Handlers = typename Map<HandlingDrivers, GetHandle>::Result;
+        
+        template <typename Handler>
+        struct UsurpsInterrupt {
+          struct Yes; struct No;
+          template <void (*)()> struct Signature;
+          template <typename U> static Yes& test(Signature<U::handle> *);
+          template <typename>   static No&  test(...);
+          using Result = typename Same<decltype(test<Handler>(0)), Yes&>::Result;
+        };
+        using UsurpingHandlers = typename Select<Handlers, UsurpsInterrupt>::Result;
+        
+        template <typename Handler> using SharesInterrupt = HasVoidCallOperator<Handler>;
+        using SharingHandlers = typename Select<Handlers, SharesInterrupt>::Result;
+        
+        static_assert(Length<UsurpingHandlers>::Result::value < 2, "multiple drivers usurping the same interrupt!");
+        static_assert(Empty<UsurpingHandlers>::Result::value || Empty<SharingHandlers>::Result::value, "drivers sharing an interrupt conflict with a driver usurping the same interrupt!");
+        
+        struct SharedHandler { static void handle() { Each<SharingHandlers>()(); } };
+        using Result = typename First<typename Append<UsurpingHandlers, SharedHandler>::Result>::Result;
       };
-      
-      template <typename Interrupt>
-      static void handler() { Handler<Interrupt>()(); }
       
       template <typename Table, typename Interrupt>
       struct AddHandlerToTable : Table {
-        void (* const vector)();
-        constexpr AddHandlerToTable() : Table(), vector(handler<Interrupt>) { }
         using Result = AddHandlerToTable;
+        using Handler = typename GetHandler<Interrupt>::Result;
+        void (* const vector)();
+        constexpr AddHandlerToTable() : Table(), vector(Handler::handle) { }
       };
       
       struct EmptyTable { };
