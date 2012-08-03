@@ -1,5 +1,5 @@
-#ifndef CPPMETA_LIST_H
-#define CPPMETA_LIST_H
+#ifndef CPPMETA_META_LIST_H
+#define CPPMETA_META_LIST_H
 
 #include "meta.h"
 

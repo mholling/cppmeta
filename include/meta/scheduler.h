@@ -1,10 +1,10 @@
-#ifndef CPPMETA_SCHEDULER_H
-#define CPPMETA_SCHEDULER_H
+#ifndef CPPMETA_META_SCHEDULER_H
+#define CPPMETA_META_SCHEDULER_H
 
 #include "meta.h"
 #include "list.h"
-#include "queue.h"
 #include "hfsm.h"
+#include "queue.h"
 
 namespace CppMeta {
   namespace Scheduler {

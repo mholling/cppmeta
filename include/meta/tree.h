@@ -1,5 +1,5 @@
-#ifndef CPPMETA_TREE_H
-#define CPPMETA_TREE_H
+#ifndef CPPMETA_META_TREE_H
+#define CPPMETA_META_TREE_H
 
 #include "meta.h"
 #include "list.h"

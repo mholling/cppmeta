@@ -1,5 +1,5 @@
-#ifndef CPPMETA_H
-#define CPPMETA_H
+#ifndef CPPMETA_META_META_H
+#define CPPMETA_META_META_H
 
 namespace CppMeta {
   template <typename Type, Type t> struct Value { static constexpr Type value = t; };

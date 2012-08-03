@@ -1,5 +1,5 @@
-#ifndef CPPMETA_HFSM_H
-#define CPPMETA_HFSM_H
+#ifndef CPPMETA_META_HFSM_H
+#define CPPMETA_META_HFSM_H
 
 #include "meta.h"
 #include "list.h"

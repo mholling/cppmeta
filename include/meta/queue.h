@@ -1,5 +1,5 @@
-#ifndef CPPMETA_QUEUE_H
-#define CPPMETA_QUEUE_H
+#ifndef CPPMETA_META_QUEUE_H
+#define CPPMETA_META_QUEUE_H
 
 namespace CppMeta {
   namespace Queue {
