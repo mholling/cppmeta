@@ -76,13 +76,9 @@ namespace CppMeta {
     using Result = typename If<typename Predicate<Head>::Result, Head, Find<List<Tail...>, Predicate>>::Result;
   };
   
-  template <typename L> struct Any;
-  template <typename... Elements> struct Any<List<Elements...>> { using Result = Bool<true>; };
-  template <> struct Any<List<>> { using Result = Bool<false>; };
-  
-  template <typename L> struct Empty;
-  template <typename... Elements> struct Empty<List<Elements...>> { using Result = Bool<false>; };
-  template <> struct Empty<List<>> { using Result = Bool<true>; };
+  template <typename L> using Any = GreaterThan<typename Length<L>::Result, Int<0>>;
+  template <typename L> using Many = GreaterThan<typename Length<L>::Result, Int<1>>;
+  template <typename L> using Empty = Same<typename Length<L>::Result, Int<0>>;
   
   template <typename L, typename Type> struct Contains;
   template <typename... Tail, typename Head, typename Type>

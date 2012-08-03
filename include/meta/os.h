@@ -30,17 +30,6 @@ namespace CppMeta {
       using DirectDependencies = typename Unique<typename Flatten<typename Map<Machines, GetDependencies>::Result>::Result>::Result;
       using Drivers = typename ExpandDependencies<DirectDependencies>::Result;
       
-      struct Run {
-        template <typename Driver> struct Initialise { using Result = typename Driver::template Initialise<Kernel>; };
-        void operator ()() {
-          Each<Drivers, Initialise>()();
-          Scheduler::Initialise<Kernel, Context, Machines>()();
-          Context::waitloop();
-        }
-      };
-      
-      static void run() { Run()(); }
-      
       template <typename Event>
       struct Post {
         using Result = Post;
@@ -51,9 +40,21 @@ namespace CppMeta {
       static void post() { Post<Event>()(); }
       
       template <typename Driver>
-      struct GetConfiguration {
+      struct GetDependers {
         template <typename Candidate> using DependsOnDriver = DependsOn<Candidate, Driver>;
-        using Candidates = typename Select<typename Concat<Drivers, Machines>::Result, DependsOnDriver>::Result;
+        using Result = typename Select<typename Concat<Drivers, Machines>::Result, DependsOnDriver>::Result;
+      };
+      
+      template <typename Driver>
+      struct GetConfiguration {
+        struct Yes; struct No;
+        template <typename U> static Yes& test(typename U::SingleOwner *);
+        template <typename>   static No&  test(...);
+        using SingleOwner = typename Same<decltype(test<Driver>(0)), Yes&>::Result;
+        
+        using Dependers = typename GetDependers<Driver>::Result;
+        static_assert(Not<typename And<SingleOwner, typename Many<Dependers>::Result>::Result>::Result::value, "driver requires single owner");
+        
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
         template <typename Candidate>
         struct ConfiguresDriver {
@@ -62,12 +63,23 @@ namespace CppMeta {
           template <typename>   static No&  test(...);
           using Result = typename Same<decltype(test<Candidate>(0)), Yes&>::Result;
         };
-        using Configurers = typename Select<Candidates, ConfiguresDriver>::Result;
+        using Configurers = typename Select<Dependers, ConfiguresDriver>::Result;
         template <typename Memo, typename Configurer> struct AddConfiguration { using Result = typename Configurer::template Configure<Driver, Memo>; };
         using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
       };
       
       template <typename Driver> using Configuration = typename GetConfiguration<Driver>::Result;
+      
+      struct Run {
+        template <typename Driver> struct Initialise { using Result = typename Driver::template Initialise<Kernel, Configuration<Driver>>; };
+        void operator ()() {
+          Each<Drivers, Initialise>()();
+          Scheduler::Initialise<Kernel, Context, Machines>()();
+          Context::waitloop();
+        }
+      };
+      
+      static void run() { Run()(); }
       
       template <typename Interrupts>
       struct GetVectorTable {

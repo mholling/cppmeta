@@ -38,6 +38,10 @@ namespace CppMeta {
       static_assert(Any<List<int, char>>::Result::value, "failed");
       static_assert(!Any<List<>>::Result::value, "failed");
 
+      static_assert(Many<List<int, char>>::Result::value, "failed");
+      static_assert(!Many<List<int>>::Result::value, "failed");
+      static_assert(!Many<List<>>::Result::value, "failed");
+
       static_assert(!Empty<List<int, char>>::Result::value, "failed");
       static_assert(Empty<List<>>::Result::value, "failed");
 
