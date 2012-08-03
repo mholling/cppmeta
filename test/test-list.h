@@ -76,6 +76,8 @@ namespace CppMeta {
       static_assert(Same<Max<List<Int<0>>>::Result, Int<0>>::Result::value, "failed");
       static_assert(Same<Min<List<Int<0>>>::Result, Int<0>>::Result::value, "failed");
       
+      static_assert(Same<MakeSequence<Int<-1>, Int<3>>::Result, List<Int<-1>, Int<0>, Int<1>, Int<2>, Int<3>>>::Result::value, "failed");
+      
       int x, y, z;
       struct SetX { void operator()(int v) { x = v; } };
       struct SetY { void operator()(int v) { y = v; } };

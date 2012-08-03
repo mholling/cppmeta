@@ -178,6 +178,13 @@ namespace CppMeta {
   template <typename L> using Max = InjectFirst<L, GreaterOf>;
   template <typename L> using Min = InjectFirst<L, LesserOf>;
   
+  template <typename First, typename Last>
+  struct MakeSequence {
+    using Result = typename Append<typename MakeSequence<First, typename Decrement<Last>::Result>::Result, Last>::Result;
+  };
+  template <typename First>
+  struct MakeSequence<First, First> { using Result = List<First>; };
+  
   template <typename L, template <typename> class Function = Self> struct Each;
   template <typename Head, typename... Tail, template <typename> class Function>
   struct Each<List<Head, Tail...>, Function> {
