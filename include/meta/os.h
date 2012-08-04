@@ -9,10 +9,9 @@ namespace CppMeta {
   namespace OS {
     template <typename DriverOrMachine>
     struct HasDependencies {
-      struct Yes; struct No;
-      template <typename U> static Yes& test(typename U::Dependencies *);
-      template <typename>   static No&  test(...);
-      using Result = typename Same<decltype(test<DriverOrMachine>(0)), Yes&>::Result;
+      template <typename U> static Bool<true>  test(typename U::Dependencies *);
+      template <typename>   static Bool<false> test(...);
+      using Result = decltype(test<DriverOrMachine>(0));
     };
     template <typename DriverOrMachine> struct GetDependenciesUnsafely { using Result = typename DriverOrMachine::Dependencies; };
     template <typename DriverOrMachine> using GetDependencies = If<typename HasDependencies<DriverOrMachine>::Result, GetDependenciesUnsafely<DriverOrMachine>, List<>>;
@@ -47,10 +46,9 @@ namespace CppMeta {
       
       template <typename Driver>
       struct GetConfiguration {
-        struct Yes; struct No;
-        template <typename U> static Yes& test(typename U::SingleOwner *);
-        template <typename>   static No&  test(...);
-        using SingleOwner = typename Same<decltype(test<Driver>(0)), Yes&>::Result;
+        template <typename U> static Bool<true>  test(typename U::SingleOwner *);
+        template <typename>   static Bool<false> test(...);
+        using SingleOwner = decltype(test<Driver>(0));
         
         using Dependers = typename GetDependers<Driver>::Result;
         static_assert(Not<typename And<SingleOwner, typename Many<Dependers>::Result>::Result>::Result::value, "driver requires single owner");
@@ -58,10 +56,9 @@ namespace CppMeta {
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
         template <typename Candidate>
         struct ConfiguresDriver {
-          struct Yes; struct No;
-          template <typename U> static Yes& test(int(*)[sizeof(typename U::template Configure<Driver, DefaultConfiguration>)]);
-          template <typename>   static No&  test(...);
-          using Result = typename Same<decltype(test<Candidate>(0)), Yes&>::Result;
+          template <typename U> static Bool<true>  test(int(*)[sizeof(typename U::template Configure<Driver, DefaultConfiguration>)]);
+          template <typename>   static Bool<false> test(...);
+          using Result = decltype(test<Candidate>(0));
         };
         using Configurers = typename Select<Dependers, ConfiguresDriver>::Result;
         template <typename Memo, typename Configurer> struct AddConfiguration { using Result = typename Configurer::template Configure<Driver, Memo>; };
@@ -87,10 +84,9 @@ namespace CppMeta {
         struct GetHandler {
           template <typename Driver>
           struct HandlesInterrupt {
-            struct Yes; struct No;
-            template <typename U> static Yes& test(int(*)[sizeof(typename U::template Handle<Kernel, Interrupt>)]);
-            template <typename>   static No&  test(...);
-            using Result = typename Same<decltype(test<Driver>(0)), Yes&>::Result;
+            template <typename U> static Bool<true>  test(int(*)[sizeof(typename U::template Handle<Kernel, Interrupt>)]);
+            template <typename>   static Bool<false> test(...);
+            using Result = decltype(test<Driver>(0));
           };
           using HandlingDrivers = typename Select<Drivers, HandlesInterrupt>::Result;
           template <typename Driver> struct GetHandle { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
@@ -98,11 +94,10 @@ namespace CppMeta {
           
           template <typename Handler>
           struct UsurpsInterrupt {
-            struct Yes; struct No;
             template <void (*)()> struct Signature;
-            template <typename U> static Yes& test(Signature<U::handle> *);
-            template <typename>   static No&  test(...);
-            using Result = typename Same<decltype(test<Handler>(0)), Yes&>::Result;
+            template <typename U> static Bool<true>  test(Signature<U::handle> *);
+            template <typename>   static Bool<false> test(...);
+            using Result = decltype(test<Handler>(0));
           };
           using UsurpingHandlers = typename Select<Handlers, UsurpsInterrupt>::Result;
           

@@ -32,11 +32,10 @@ namespace CppMeta {
       struct ExitIfCurrent {
         template <typename State>
         struct HasExit {
-          struct Yes; struct No;
           template <typename U, void (U::*)()> struct Signature;
-          template <typename U> static Yes& test(Signature<typename U::template Exit<Kernel, State>, &U::template Exit<Kernel, State>::operator()> *);
-          template <typename>   static No&  test(...);
-          using Result = typename Same<decltype(test<Machine>(0)), Yes&>::Result;
+          template <typename U> static Bool<true>  test(Signature<typename U::template Exit<Kernel, State>, &U::template Exit<Kernel, State>::operator()> *);
+          template <typename>   static Bool<false> test(...);
+          using Result = decltype(test<Machine>(0));
         };
         template <typename State> struct Exit { using Result = Exit; void operator()() { typename Machine::template Exit<Kernel, State>()(); } };
         using ExitPath = typename SelfAndAncestors<Substates, Candidate>::Result;
@@ -56,11 +55,10 @@ namespace CppMeta {
     struct EnterStates {
         template <typename State>
         struct HasEntry {
-          struct Yes; struct No;
           template <typename U, void (U::*)()> struct Signature;
-          template <typename U> static Yes& test(Signature<typename U::template Enter<Kernel, State>, &U::template Enter<Kernel, State>::operator()> *);
-          template <typename>   static No&  test(...);
-          using Result = typename Same<decltype(test<Machine>(0)), Yes&>::Result;
+          template <typename U> static Bool<true>  test(Signature<typename U::template Enter<Kernel, State>, &U::template Enter<Kernel, State>::operator()> *);
+          template <typename>   static Bool<false> test(...);
+          using Result = decltype(test<Machine>(0));
         };
       template <typename State> struct Enter { using Result = Enter; void operator()() { typename Machine::template Enter<Kernel, State>()(); } };
       using TargetEntryPath = typename Reverse<typename Ancestors<Substates, Target>::Result>::Result;
@@ -75,19 +73,17 @@ namespace CppMeta {
     
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
     struct HasGuard {
-      struct Yes; struct No;
       template <typename U, bool (U::*)()> struct Signature;
-      template <typename U> static Yes& test(Signature<typename U::template Guard<Kernel, State, Event, Target>, &U::template Guard<Kernel, State, Event, Target>::operator()> *);
-      template <typename>   static No&  test(...);
-      using Result = typename Same<decltype(test<Machine>(0)), Yes&>::Result;
+      template <typename U> static Bool<true>  test(Signature<typename U::template Guard<Kernel, State, Event, Target>, &U::template Guard<Kernel, State, Event, Target>::operator()> *);
+      template <typename>   static Bool<false> test(...);
+      using Result = decltype(test<Machine>(0));
     };
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
     struct HasAction {
-      struct Yes; struct No;
       template <typename U, void (U::*)()> struct Signature;
-      template <typename U> static Yes& test(Signature<typename U::template Action<Kernel, State, Event, Target>, &U::template Action<Kernel, State, Event, Target>::operator()> *);
-      template <typename>   static No&  test(...);
-      using Result = typename Same<decltype(test<Machine>(0)), Yes&>::Result;
+      template <typename U> static Bool<true>  test(Signature<typename U::template Action<Kernel, State, Event, Target>, &U::template Action<Kernel, State, Event, Target>::operator()> *);
+      template <typename>   static Bool<false> test(...);
+      using Result = decltype(test<Machine>(0));
     };
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
       using HasTransition = Or<typename HasGuard<Kernel, Machine, State, Event, Target>::Result, typename HasAction<Kernel, Machine, State, Event, Target>::Result>;

@@ -45,10 +45,9 @@ namespace CppMeta {
   
   template <typename Type>
   struct CanEval {
-    struct Yes; struct No;
-    template <typename U> static Yes& test(typename U::Result *);
-    template <typename>   static No&  test(...);
-    using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
+    template <typename U> static Bool<true>  test(typename U::Result *);
+    template <typename>   static Bool<false> test(...);
+    using Result = decltype(test<Type>(0));
   };
   
   template <typename Type, typename Evalable = typename CanEval<Type>::Result> struct Eval;
@@ -64,10 +63,9 @@ namespace CppMeta {
   
   template <typename Type, typename Base>
   struct IsOrInherits {
-    struct Yes; struct No;
-    static Yes& test(Base*);
-    static No&  test(...);
-    using Result = typename Same<decltype(test(static_cast<Type *>(0))), Yes&>::Result;
+    static Bool<true>  test(Base *);
+    static Bool<false> test(...);
+    using Result = decltype(test(static_cast<Type *>(0)));
   };
   
   template <typename Type, typename Base>
@@ -77,11 +75,10 @@ namespace CppMeta {
   
   template <typename Type, typename Return, typename... Args>
   struct HasCallOperator {
-    struct Yes; struct No;
-    template <typename C, Return (C::*)(Args... args)> struct Signature;
-    template <typename C> static Yes& test(Signature<C, &C::operator ()> *);
-    template <typename>   static No&  test(...);
-    using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
+    template <typename U, Return (U::*)(Args... args)> struct Signature;
+    template <typename U> static Bool<true>  test(Signature<U, &U::operator ()> *);
+    template <typename>   static Bool<false> test(...);
+    using Result = decltype(test<Type>(0));
   };
   
   template <typename Type, typename... Args> using HasBoolCallOperator = HasCallOperator<Type, bool, Args...>;
@@ -89,18 +86,16 @@ namespace CppMeta {
   
   template <typename Type>
   struct IsClass {
-    struct Yes; struct No;
-    template <typename U> static Yes& test(int U::*);
-    template <typename U> static No&  test(...);
-    using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
+    template <typename U> static Bool<true>  test(int U::*);
+    template <typename>   static Bool<false> test(...);
+    using Result = decltype(test<Type>(0));
   };
   
   template <typename Type>
   struct IsComplete {
-    struct Yes; struct No;
-    template <typename U> static Yes& test(int(*)[sizeof(U)]);
-    template <typename>   static No&  test(...);
-    using Result = typename Same<decltype(test<Type>(0)), Yes&>::Result;
+    template <typename U> static Bool<true>  test(int(*)[sizeof(U)]);
+    template <typename>   static Bool<false> test(...);
+    using Result = decltype(test<Type>(0));
   };
   
   template <typename Type> using IsIncomplete = Not<typename IsComplete<Type>::Result>;
