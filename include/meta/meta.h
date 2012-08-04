@@ -1,11 +1,17 @@
 #ifndef CPPMETA_META_META_H
 #define CPPMETA_META_META_H
 
+#include <stdint.h>
+
 namespace CppMeta {
   template <typename Type, Type t> struct Value { static constexpr Type value = t; };
   template <bool b> using Bool = Value<bool, b>;
   template <int  i> using Int  = Value<int,  i>;
+  template <long l> using Long = Value<long, l>;
   template <char c> using Char = Value<char, c>;
+  
+  template <int position> using Bit = Int<(1<<position)>;
+  template <int width, int position> using BitMask = Int<(((1ull<<width)-1)<<position)>;
   
   template <typename> struct Increment;
   template <typename Type, Type t> struct Increment<Value<Type, t>> { using Result = Value<Type, t+1>; };
@@ -18,6 +24,13 @@ namespace CppMeta {
   template <typename, typename> struct Minus;
   template <typename Type, Type t1, Type t2>
   struct Minus<Value<Type, t1>, Value<Type, t2>> { using Result = Value<Type, t1-t2>; };
+  
+  template <typename, typename> struct LeftShift;
+  template <typename Type1, Type1 t1, typename Type2, Type2 t2>
+  struct LeftShift<Value<Type1, t1>, Value<Type2, t2>> { using Result = Value<Type1, (t1<<t2)>; };
+  template <typename, typename> struct RightShift;
+  template <typename Type1, Type1 t1, typename Type2, Type2 t2>
+  struct RightShift<Value<Type1, t1>, Value<Type2, t2>> { using Result = Value<Type1, (t1>>t2)>; };
   
   template <typename, typename> struct LessThan;
   template <typename Type, Type t1, Type t2>
@@ -35,6 +48,27 @@ namespace CppMeta {
   template <typename> struct Not;
   template <typename Type, Type t>
   struct Not<Value<Type, t>> { using Result = Bool<!t>; };
+  
+  template <typename, typename> struct BitwiseOr;
+  template <typename Type, Type t1, Type t2>
+  struct BitwiseOr<Value<Type, t1>, Value<Type, t2>> { using Result = Value<Type, t1 | t2> ;};
+  template <typename, typename> struct BitwiseAnd;
+  template <typename Type, Type t1, Type t2>
+  struct BitwiseAnd<Value<Type, t1>, Value<Type, t2>> { using Result = Value<Type, t1 & t2> ;};
+  template <typename> struct BitwiseNot;
+  template <typename Type, Type t>
+  struct BitwiseNot<Value<Type, t>> { using Result = Value<Type, ~t> ;};
+  
+  template <typename> struct BitPosition;
+  template <typename Type, Type t>
+  struct BitPosition<Value<Type, t>> { using Result = Int<t & 1 ? 0 : 1 + BitPosition<Value<Type, (t>>1)>>::Result::value>; };
+  template <typename Type> struct BitPosition<Value<Type, Type(1)>> { using Result = Int<0>; };
+  
+  template <typename> struct BitCount;
+  template <typename Type, Type t>
+  struct BitCount<Value<Type, t>> { using Result = typename Plus<Int<t & 1>, typename BitCount<Value<Type, (t>>1)>>::Result>::Result; };
+  template <typename Type>
+  struct BitCount<Value<Type, Type(0)>> { using Result = Int<0>; };
   
   template <typename Type1, typename Type2> struct Same { using Result = Bool<false>; };
   template <typename Type> struct Same<Type, Type> { using Result = Bool<true>; };
