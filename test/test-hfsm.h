@@ -33,9 +33,9 @@ namespace CppMeta {
           typedef Tree<Active, StoppedTree, PlayingTree, FastForwardingTree, PausedTree> ActiveTree;
         typedef Tree<PluggedIn, ActiveTree, StandbyTree> States;
         
-        static_assert(Same<HFSM::DefaultPath<States>::Result, List<PluggedIn, Active, Stopped>>::Result::value, "failed");
-        static_assert(Same<HFSM::DefaultPath<ActiveTree>::Result, List<Active, Stopped>>::Result::value, "failed");
-        static_assert(Same<HFSM::DefaultPath<PlayingTree>::Result, List<Playing, NormalSpeed>>::Result::value, "failed");
+        static_assert(Same<HFSM::DefaultPath<States>, List<PluggedIn, Active, Stopped>>::value, "failed");
+        static_assert(Same<HFSM::DefaultPath<ActiveTree>, List<Active, Stopped>>::value, "failed");
+        static_assert(Same<HFSM::DefaultPath<PlayingTree>, List<Playing, NormalSpeed>>::value, "failed");
         
         template <typename, typename> struct Enter;
         template <typename, typename> struct Exit;
@@ -70,12 +70,12 @@ namespace CppMeta {
       template <typename Kernel> struct VCR::Action<Kernel, VCR::FastForwarding, StopButton, VCR::Stopped> { void operator()() { } };
       template <typename Kernel> struct VCR::Action<Kernel, VCR::Paused, StopButton, VCR::Stopped> { void operator()() { } };
       
-      static_assert(HFSM::RespondsTo<VCR, PowerButton>::Result::value, "failed");
-      static_assert(HFSM::RespondsTo<VCR, PlayButton>::Result::value, "failed");
-      static_assert(HFSM::RespondsTo<VCR, PauseButton>::Result::value, "failed");
-      static_assert(HFSM::RespondsTo<VCR, ForwardButton>::Result::value, "failed");
-      static_assert(HFSM::RespondsTo<VCR, StopButton>::Result::value, "failed");
-      static_assert(!HFSM::RespondsTo<VCR, bool>::Result::value, "failed");
+      static_assert(HFSM::RespondsTo<VCR, PowerButton>::value, "failed");
+      static_assert(HFSM::RespondsTo<VCR, PlayButton>::value, "failed");
+      static_assert(HFSM::RespondsTo<VCR, PauseButton>::value, "failed");
+      static_assert(HFSM::RespondsTo<VCR, ForwardButton>::value, "failed");
+      static_assert(HFSM::RespondsTo<VCR, StopButton>::value, "failed");
+      static_assert(!HFSM::RespondsTo<VCR, bool>::value, "failed");
       
       struct Kernel { template <typename Event> static void post() { } };
       

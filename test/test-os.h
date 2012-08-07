@@ -92,15 +92,17 @@ namespace CppMeta {
         template <typename, typename Config> struct Configure;
       };
       template <typename Config> struct M3::Configure<D3, Config> : Config { static constexpr int bitfield = Config::bitfield | 4; };
-      template <typename Config> struct M3::Configure<D4, Config> : Config { static constexpr bool m3flag = true; using Types = typename Append<typename Config::Types, bool>::Result; };
+      template <typename Config> struct M3::Configure<D4, Config> : Config { static constexpr bool m3flag = true; using Types = Append<typename Config::Types, bool>; };
       
       using Machines = List<M1, M2, M3>;
       using Kernel = OS::Kernel<Context, Machines>;
       
-      static_assert(Same<Kernel::GetDependers<D1>::Result, List<D3, D2, M1>>::Result::value, "failed");
-      static_assert(Same<Kernel::GetDependers<D2>::Result, List<D4>>::Result::value, "failed");
-      static_assert(Same<Kernel::GetDependers<D3>::Result, List<M1, M3>>::Result::value, "failed");
-      static_assert(Same<Kernel::GetDependers<D4>::Result, List<M2, M3>>::Result::value, "failed");
+      static_assert(Same<Kernel::Drivers, List<D1, D2, D3, D4>>::value, "failed");
+      
+      static_assert(Same<Kernel::Dependants<D1>, List<D2, D3, M1>>::value, "failed");
+      static_assert(Same<Kernel::Dependants<D2>, List<D4>>::value, "failed");
+      static_assert(Same<Kernel::Dependants<D3>, List<M1, M3>>::value, "failed");
+      static_assert(Same<Kernel::Dependants<D4>, List<M2, M3>>::value, "failed");
       
       using D1Config = Kernel::Configuration<D1>;
       using D3Config = Kernel::Configuration<D3>;
@@ -109,7 +111,7 @@ namespace CppMeta {
       static_assert(D1Config::defaultflag == true, "failed");
       static_assert(D3Config::bitfield == 7, "failed");
       static_assert(D4Config::m3flag == true, "failed");
-      static_assert(Same<D4Config::Types, List<int, bool>>::Result::value, "failed");
+      static_assert(Same<D4Config::Types, List<int, bool>>::value, "failed");
       
       using Interrupts = List<Irq1, Irq2, Irq3>;
       using VectorTable = Kernel::VectorTable<Interrupts>;
@@ -132,7 +134,7 @@ namespace CppMeta {
         
         init_order = 0;
         Kernel::run();
-        assert(init_order == 1324);
+        assert(init_order == 1234);
       }
     }
   }

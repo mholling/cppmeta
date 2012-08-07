@@ -11,91 +11,101 @@ namespace CppMeta {
     struct CurrentState {
       static int index;
       template <typename State>
-      struct Test { bool operator()() { return Index<typename Machine::States, State>::Result::value == index; } };
+      struct Test { bool operator()() { return Index<typename Machine::States, State>::value == index; } };
       template <typename State>
-      struct Set { void operator()() { index = Index<typename Machine::States, State>::Result::value; } };
+      struct Set { void operator()() { index = Index<typename Machine::States, State>::value; } };
     };
     template <typename Machine>
     int CurrentState<Machine>::index = 0;
     
-    template <typename States> struct DefaultPath;
+    template <typename States> struct DefaultPathImpl;
+    template <typename States> using DefaultPath = typename DefaultPathImpl<States>::Result;
     template <typename State, typename FirstSubstate, typename... OtherSubstates>
-    struct DefaultPath<Tree<State, FirstSubstate, OtherSubstates...>> {
-      using Result = typename Prepend<State, typename DefaultPath<FirstSubstate>::Result>::Result;
-    };
+    struct DefaultPathImpl<Tree<State, FirstSubstate, OtherSubstates...>> { using Result = Prepend<State, DefaultPath<FirstSubstate>>; };
     template <typename State>
-    struct DefaultPath<Tree<State>> { using Result = List<State>; };
+    struct DefaultPathImpl<Tree<State>> { using Result = List<State>; };
     
     template <typename Kernel, typename Machine, typename Substates>
     struct ExitStates {
       template <typename Candidate>
       struct ExitIfCurrent {
         template <typename State>
-        struct HasExit {
+        struct HasExitImpl {
           template <typename U, void (U::*)()> struct Signature;
           template <typename U> static Bool<true>  test(Signature<typename U::template Exit<Kernel, State>, &U::template Exit<Kernel, State>::operator()> *);
           template <typename>   static Bool<false> test(...);
           using Result = decltype(test<Machine>(0));
         };
-        template <typename State> struct Exit { using Result = Exit; void operator()() { typename Machine::template Exit<Kernel, State>()(); } };
-        using ExitPath = typename SelfAndAncestors<Substates, Candidate>::Result;
+        template <typename State> using HasExit = typename HasExitImpl<State>::Result;
+        
+        template <typename State> struct Exit { void operator()() { typename Machine::template Exit<Kernel, State>()(); } };
+        using ExitPath = SelfAndAncestors<Substates, Candidate>;
         using Result = ExitIfCurrent;
         bool operator()() {
           if (!typename CurrentState<Machine>::template Test<Candidate>()()) return false;
-          Each<typename Select<ExitPath, HasExit>::Result, Exit>()();
+          Each<Select<ExitPath, HasExit>, Exit>()();
           return true;
         }
       };
-      using LeafStates = typename Leaves<Substates>::Result;
-      using ExitFromCurrentState = typename Map<LeafStates, ExitIfCurrent>::Result;
-      bool operator()() { return Until<ExitFromCurrentState>()(); }
+      
+      bool operator()() { return Until<Leaves<Substates>, ExitIfCurrent>()(); }
     };
     
-    template <typename Kernel, typename Machine, typename Substates = typename Machine::States, typename Target = typename Root<Substates>::Result>
+    template <typename Kernel, typename Machine, typename Substates = typename Machine::States, typename Target = Root<Substates>>
     struct EnterStates {
-        template <typename State>
-        struct HasEntry {
-          template <typename U, void (U::*)()> struct Signature;
-          template <typename U> static Bool<true>  test(Signature<typename U::template Enter<Kernel, State>, &U::template Enter<Kernel, State>::operator()> *);
-          template <typename>   static Bool<false> test(...);
-          using Result = decltype(test<Machine>(0));
-        };
-      template <typename State> struct Enter { using Result = Enter; void operator()() { typename Machine::template Enter<Kernel, State>()(); } };
-      using TargetEntryPath = typename Reverse<typename Ancestors<Substates, Target>::Result>::Result;
-      using DefaultEntryPath = typename DefaultPath<typename FindBranch<Substates, Target>::Result>::Result;
-      using EntryPath = typename Concat<TargetEntryPath, DefaultEntryPath>::Result;
-      using FinalState = typename Last<EntryPath>::Result;
+      template <typename State>
+      struct HasEntryImpl {
+        template <typename U, void (U::*)()> struct Signature;
+        template <typename U> static Bool<true>  test(Signature<typename U::template Enter<Kernel, State>, &U::template Enter<Kernel, State>::operator()> *);
+        template <typename>   static Bool<false> test(...);
+        using Result = decltype(test<Machine>(0));
+      };
+      template <typename State> using HasEntry = typename HasEntryImpl<State>::Result;
+      
+      template <typename State> struct Enter { void operator()() { typename Machine::template Enter<Kernel, State>()(); } };
+      using TargetEntryPath = Reverse<Ancestors<Substates, Target>>;
+      using DefaultEntryPath = DefaultPath<FindBranch<Substates, Target>>;
+      using EntryPath = Concat<TargetEntryPath, DefaultEntryPath>;
+      using FinalState = Last<EntryPath>;
+      
       void operator()() {
-        Each<typename Select<EntryPath, HasEntry>::Result, Enter>()();
+        Each<Select<EntryPath, HasEntry>, Enter>()();
         typename CurrentState<Machine>::template Set<FinalState>()();
       }
     };
     
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
-    struct HasGuard {
+    struct HasGuardImpl {
       template <typename U, bool (U::*)()> struct Signature;
       template <typename U> static Bool<true>  test(Signature<typename U::template Guard<Kernel, State, Event, Target>, &U::template Guard<Kernel, State, Event, Target>::operator()> *);
       template <typename>   static Bool<false> test(...);
       using Result = decltype(test<Machine>(0));
     };
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
-    struct HasAction {
+      using HasGuard = typename HasGuardImpl<Kernel, Machine, State, Event, Target>::Result;
+    
+    template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
+    struct HasActionImpl {
       template <typename U, void (U::*)()> struct Signature;
       template <typename U> static Bool<true>  test(Signature<typename U::template Action<Kernel, State, Event, Target>, &U::template Action<Kernel, State, Event, Target>::operator()> *);
       template <typename>   static Bool<false> test(...);
       using Result = decltype(test<Machine>(0));
     };
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
-      using HasTransition = Or<typename HasGuard<Kernel, Machine, State, Event, Target>::Result, typename HasAction<Kernel, Machine, State, Event, Target>::Result>;
+      using HasAction = typename HasActionImpl<Kernel, Machine, State, Event, Target>::Result;
+    
+    template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
+      using HasTransition = Or<HasGuard<Kernel, Machine, State, Event, Target>, HasAction<Kernel, Machine, State, Event, Target>>;
     
     struct EmptyAction { void operator()() { } };
     struct EmptyGuard { bool operator()() { return true; } };
     
     template <typename Kernel, typename Machine, typename Source, typename Event, typename Target>
     struct ChangeState {
-      using Substates = typename CommonBranch<typename Machine::States, Source, Target>::Result;
-      using ActionExists = typename HasAction<Kernel, Machine, Source, Event, Target>::Result;
-      using Action = typename If<ActionExists, typename Machine::template Action<Kernel, Source, Event, Target>, EmptyAction>::Result;
+      using Substates = CommonBranch<typename Machine::States, Source, Target>;
+      using ActionExists = HasAction<Kernel, Machine, Source, Event, Target>;
+      struct GetAction { using Result = typename Machine::template Action<Kernel, Source, Event, Target>; };
+      using Action = If<ActionExists, GetAction, EmptyAction>;
       bool operator()() {
         ExitStates<Kernel, Machine, Substates>()();
         Action()();
@@ -112,31 +122,27 @@ namespace CppMeta {
       struct ClaimEvent {
         template <typename Target>
         struct TryTransition {
-          using Result = TryTransition;
-          using GuardExists = typename HasGuard<Kernel, Machine, State, Event, Target>::Result;
-          using Guard = typename If<GuardExists, typename Machine::template Guard<Kernel, State, Event, Target>, EmptyGuard>::Result;
+          using GuardExists = HasGuard<Kernel, Machine, State, Event, Target>;
+          struct GetGuard { using Result = typename Machine::template Guard<Kernel, State, Event, Target>; };
+          using Guard = If<GuardExists, GetGuard, EmptyGuard>;
           bool operator()() { return Guard()() && ChangeState<Kernel, Machine, State, Event, Target>()(); }
         };
       
-        using Result = ClaimEvent;
-        template <typename State1, typename State2> using CloserThan = LessThan<typename Distance<States, State, State1>::Result, typename Distance<States, State, State2>::Result>;
+        template <typename State1, typename State2> using CloserThan = LessThan<Distance<States, State, State1>, Distance<States, State, State2>>;
         template <typename Target> using HasTransitionTo = HasTransition<Kernel, Machine, State, Event, Target>;
-        using Targets = typename Select<typename Flatten<States>::Result, HasTransitionTo>::Result;
-        using SortedTargets = typename Sort<Targets, CloserThan>::Result;
-        using TransitionSuccessful = typename Map<SortedTargets, TryTransition>::Result;
-        bool operator()() { return Until<TransitionSuccessful>()(); }
+        using Targets = Select<Flatten<States>, HasTransitionTo>;
+        using SortedTargets = Sort<Targets, CloserThan>;
+        bool operator()() { return Until<SortedTargets, TryTransition>()(); }
       };
     
       template <typename State>
       struct RunEventHandlers {
-        using HandlingStates = typename SelfAndAncestors<States, State>::Result;
-        using EventClaimed = typename Map<HandlingStates, ClaimEvent>::Result;
-        bool operator()() { return Until<EventClaimed>()(); }
+        using HandlingStates = SelfAndAncestors<States, State>;
+        bool operator()() { return Until<HandlingStates, ClaimEvent>()(); }
       };
   
       template <typename State>
       struct DispatchIfCurrent {
-        using Result = DispatchIfCurrent;
         bool operator()() {
           if (!typename CurrentState<Machine>::template Test<State>()()) return false;
           RunEventHandlers<State>()();
@@ -144,9 +150,7 @@ namespace CppMeta {
         }
       };
     
-      using LeafStates = typename Leaves<States>::Result;
-      using Dispatched = typename Map<LeafStates, DispatchIfCurrent>::Result;
-      void operator()() { Until<Dispatched>()(); }
+      void operator()() { Until<Leaves<States>, DispatchIfCurrent>()(); }
     };
     
     namespace {
@@ -154,23 +158,22 @@ namespace CppMeta {
       void dispatch() { Dispatch<Kernel, Machine, Event>()(); }
     }
     
-    template <typename Kernel, typename Machine>
-    struct Initialise {
-      using Result = Initialise;
-      void operator()() { EnterStates<Kernel, Machine>()(); }
-    };
+    template <typename Kernel, typename Machine> using Initialise = EnterStates<Kernel, Machine>;
     
     template <typename Machine, typename Event>
-    struct RespondsTo {
-      using States = typename Flatten<typename Machine::States>::Result;
+    struct RespondsToImpl {
+      using States = Flatten<typename Machine::States>;
       struct DummyKernel { template <typename> static void post() { } };
       template <typename State>
-      struct HasEventTransition {
+      struct HasEventTransitionImpl {
         template <typename Target> using HasTransitionTo = HasTransition<DummyKernel, Machine, State, Event, Target>;
-        using Result = typename Any<typename Select<States, HasTransitionTo>::Result>::Result;
+        using Result = Any<Select<States, HasTransitionTo>>;
       };
-      using Result = typename Any<typename Select<States, HasEventTransition>::Result>::Result;
+      template <typename State> using HasEventTransition = typename HasEventTransitionImpl<State>::Result;
+      
+      using Result = Any<Select<States, HasEventTransition>>;
     };
+    template <typename Machine, typename Event> using RespondsTo = typename RespondsToImpl<Machine, Event>::Result;
   }
 }
 

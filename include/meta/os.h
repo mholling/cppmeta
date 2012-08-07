@@ -8,67 +8,66 @@
 namespace CppMeta {
   namespace OS {
     template <typename DriverOrMachine>
-    struct HasDependencies {
+    struct HasDependenciesImpl {
       template <typename U> static Bool<true>  test(typename U::Dependencies *);
       template <typename>   static Bool<false> test(...);
       using Result = decltype(test<DriverOrMachine>(0));
     };
-    template <typename DriverOrMachine> struct GetDependenciesUnsafely { using Result = typename DriverOrMachine::Dependencies; };
-    template <typename DriverOrMachine> using GetDependencies = If<typename HasDependencies<DriverOrMachine>::Result, GetDependenciesUnsafely<DriverOrMachine>, List<>>;
+    template <typename DriverOrMachine> using HasDependencies = typename HasDependenciesImpl<DriverOrMachine>::Result;
     
-    template <typename DriverOrMachine, typename Driver> using DependsOn = Contains<typename GetDependencies<DriverOrMachine>::Result, Driver>;
+    template <typename DriverOrMachine> struct DependenciesImpl { using Result = typename DriverOrMachine::Dependencies; };
+    template <typename DriverOrMachine> using Dependencies = If<HasDependencies<DriverOrMachine>, DependenciesImpl<DriverOrMachine>, List<>>;
     
-    template <typename Dependents>
-    struct ExpandDependencies {
-      template <typename Dependent> using Expand = Append<typename ExpandDependencies<typename GetDependencies<Dependent>::Result>::Result, Dependent>;
-      using Result = typename Unique<typename Flatten<typename Map<Dependents, Expand>::Result>::Result>::Result;
-    };
+    template <typename DriverOrMachine, typename Driver> using DependsOn = Contains<Dependencies<DriverOrMachine>, Driver>;
+    
+    template <typename Dependents> struct ExpandDependenciesImpl;
+    template <typename Dependents> using ExpandDependencies = typename ExpandDependenciesImpl<Dependents>::Result;
+    template <typename Dependents> struct ExpandDependenciesImpl { using Result = Unique<Concat<Flatten<Map<Dependents, Dependencies>>, Dependents>>; };
     
     template <typename Context, typename Machines>
     struct Kernel {
-      using DirectDependencies = typename Unique<typename Flatten<typename Map<Machines, GetDependencies>::Result>::Result>::Result;
-      using Drivers = typename ExpandDependencies<DirectDependencies>::Result;
+      using DirectDependencies = Unique<Flatten<Map<Machines, Dependencies>>>;
+      using Drivers = ExpandDependencies<DirectDependencies>;
       
       template <typename Event>
-      struct Post {
-        using Result = Post;
-        void operator()() { Scheduler::Post<Kernel, Context, Machines, Event>()(); }
-      };
+      struct Post { void operator()() { Scheduler::Post<Kernel, Context, Machines, Event>()(); } };
       
       template <typename Event>
       static void post() { Post<Event>()(); }
       
       template <typename Driver>
-      struct GetDependers {
+      struct DependantsImpl {
         template <typename Candidate> using DependsOnDriver = DependsOn<Candidate, Driver>;
-        using Result = typename Select<typename Concat<Drivers, Machines>::Result, DependsOnDriver>::Result;
+        using Result = Select<Concat<Drivers, Machines>, DependsOnDriver>;
       };
+      template <typename Driver> using Dependants = typename DependantsImpl<Driver>::Result;
       
       template <typename Driver>
-      struct GetConfiguration {
+      struct ConfigurationImpl {
         template <typename U> static Bool<true>  test(typename U::SingleOwner *);
         template <typename>   static Bool<false> test(...);
         using SingleOwner = decltype(test<Driver>(0));
-        
-        using Dependers = typename GetDependers<Driver>::Result;
-        static_assert(Not<typename And<SingleOwner, typename Many<Dependers>::Result>::Result>::Result::value, "driver requires single owner");
+        static_assert(Not<And<SingleOwner, Many<Dependants<Driver>>>>::value, "driver requires single owner");
         
         using DefaultConfiguration = typename Driver::DefaultConfiguration;
+        
         template <typename Candidate>
-        struct ConfiguresDriver {
+        struct ConfiguresDriverImpl {
           template <typename U> static Bool<true>  test(int(*)[sizeof(typename U::template Configure<Driver, DefaultConfiguration>)]);
           template <typename>   static Bool<false> test(...);
           using Result = decltype(test<Candidate>(0));
         };
-        using Configurers = typename Select<Dependers, ConfiguresDriver>::Result;
-        template <typename Memo, typename Configurer> struct AddConfiguration { using Result = typename Configurer::template Configure<Driver, Memo>; };
-        using Result = typename Inject<Configurers, AddConfiguration, DefaultConfiguration>::Result;
+        template <typename Candidate> using ConfiguresDriver = typename ConfiguresDriverImpl<Candidate>::Result;
+        
+        using Configurers = Select<Dependants<Driver>, ConfiguresDriver>;
+        
+        template <typename Memo, typename Configurer> using AddConfiguration = typename Configurer::template Configure<Driver, Memo>;
+        using Result = Inject<Configurers, AddConfiguration, DefaultConfiguration>;
       };
-      
-      template <typename Driver> using Configuration = typename GetConfiguration<Driver>::Result;
+      template <typename Driver> using Configuration = typename ConfigurationImpl<Driver>::Result;
       
       struct Run {
-        template <typename Driver> struct Initialise { using Result = typename Driver::template Initialise<Kernel, Configuration<Driver>>; };
+        template <typename Driver> using Initialise = typename Driver::template Initialise<Kernel, Configuration<Driver>>;
         void operator ()() {
           Each<Drivers, Initialise>()();
           Scheduler::Initialise<Kernel, Context, Machines>()();
@@ -79,51 +78,54 @@ namespace CppMeta {
       static void run() { Run()(); }
       
       template <typename Interrupts>
-      struct GetVectorTable {
+      struct VectorTableImpl {
         template <typename Interrupt>
-        struct GetHandler {
+        struct HandlerImpl {
           template <typename Driver>
-          struct HandlesInterrupt {
+          struct HandlesInterruptImpl {
             template <typename U> static Bool<true>  test(int(*)[sizeof(typename U::template Handle<Kernel, Interrupt>)]);
             template <typename>   static Bool<false> test(...);
             using Result = decltype(test<Driver>(0));
           };
-          using HandlingDrivers = typename Select<Drivers, HandlesInterrupt>::Result;
-          template <typename Driver> struct GetHandle { using Result = typename Driver::template Handle<Kernel, Interrupt>; };
-          using Handlers = typename Map<HandlingDrivers, GetHandle>::Result;
+          template <typename Driver> using HandlesInterrupt = typename HandlesInterruptImpl<Driver>::Result;
+          using HandlingDrivers = Select<Drivers, HandlesInterrupt>;
+          
+          template <typename Driver> using GetHandle = typename Driver::template Handle<Kernel, Interrupt>;
+          using Handlers = Map<HandlingDrivers, GetHandle>;
           
           template <typename Handler>
-          struct UsurpsInterrupt {
+          struct UsurpsInterruptImpl {
             template <void (*)()> struct Signature;
             template <typename U> static Bool<true>  test(Signature<U::handle> *);
             template <typename>   static Bool<false> test(...);
             using Result = decltype(test<Handler>(0));
           };
-          using UsurpingHandlers = typename Select<Handlers, UsurpsInterrupt>::Result;
+          template <typename Handler> using UsurpsInterrupt = typename UsurpsInterruptImpl<Handler>::Result;
+          
+          using UsurpingHandlers = Select<Handlers, UsurpsInterrupt>;
           
           template <typename Handler> using SharesInterrupt = HasVoidCallOperator<Handler>;
-          using SharingHandlers = typename Select<Handlers, SharesInterrupt>::Result;
+          using SharingHandlers = Select<Handlers, SharesInterrupt>;
           
-          static_assert(Length<UsurpingHandlers>::Result::value < 2, "multiple drivers usurping the same interrupt!");
-          static_assert(Empty<UsurpingHandlers>::Result::value || Empty<SharingHandlers>::Result::value, "drivers sharing an interrupt conflict with a driver usurping the same interrupt!");
+          static_assert(Length<UsurpingHandlers>::value < 2, "multiple drivers usurping the same interrupt!");
+          static_assert(Empty<UsurpingHandlers>::value || Empty<SharingHandlers>::value, "drivers sharing an interrupt conflict with a driver usurping the same interrupt!");
           
           struct SharedHandler { static void handle() { Each<SharingHandlers>()(); } };
-          using Result = typename First<typename Append<UsurpingHandlers, SharedHandler>::Result>::Result;
+          using Result = First<Append<UsurpingHandlers, SharedHandler>>;
         };
+        template <typename Driver> using Handler = typename HandlerImpl<Driver>::Result;
         
         template <typename Table, typename Interrupt>
         struct AddHandlerToTable : Table {
-          using Result = AddHandlerToTable;
-          using Handler = typename GetHandler<Interrupt>::Result;
           void (* const vector)();
-          constexpr AddHandlerToTable() : Table(), vector(Handler::handle) { }
+          constexpr AddHandlerToTable() : Table(), vector(Handler<Interrupt>::handle) { }
         };
         
         struct EmptyTable { };
-        using Result = typename Inject<Interrupts, AddHandlerToTable, EmptyTable>::Result;
+        using Result = Inject<Interrupts, AddHandlerToTable, EmptyTable>;
       };
       
-      template <typename Interrupts> using VectorTable = typename GetVectorTable<Interrupts>::Result;
+      template <typename Interrupts> using VectorTable = typename VectorTableImpl<Interrupts>::Result;
     };
   }
 }

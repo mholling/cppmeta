@@ -13,17 +13,14 @@ namespace CppMeta {
     
     template <typename Kernel, typename Context, typename Machines, typename Event>
     struct Post {
-      template <typename Machine>
-      struct PostEvent {
-        using Result = typename Dispatchers<Machine>::template Enqueue<HFSM::dispatch<Kernel, Machine, Event>>;
-      };
-    
+      template <typename Machine> using PostEvent = typename Dispatchers<Machine>::template Enqueue<HFSM::dispatch<Kernel, Machine, Event>>;
+      
       template <typename Machine> using RespondsToEvent = HFSM::RespondsTo<Machine, Event>;
-      using RespondingMachines = typename Select<Machines, RespondsToEvent>::Result;
+      using RespondingMachines = Select<Machines, RespondsToEvent>;
     
       struct PushContext { void operator()() { Context::push(); } };
-      using PushContextNeeded = typename Any<RespondingMachines>::Result;
-      using PushContextIfNeeded = typename If<PushContextNeeded, PushContext, DoNothing>::Result;
+      using PushContextNeeded = Any<RespondingMachines>;
+      using PushContextIfNeeded = If<PushContextNeeded, PushContext, DoNothing>;
     
       void operator()() {
         Each<RespondingMachines, PostEvent>()();
@@ -37,8 +34,7 @@ namespace CppMeta {
     struct Run {
       template <typename Machine>
       struct RunMachine {
-        using Result = RunMachine;
-        using PreemptingMachines = typename Before<Machines, Machine>::Result;
+        using PreemptingMachines = Before<Machines, Machine>;
         void operator()() {
           Context::prepare(run<Context, Machines, PreemptingMachines>);
           while (Dispatchers<Machine>::any()) { Dispatchers<Machine>::dequeue()(); }
@@ -58,8 +54,7 @@ namespace CppMeta {
     struct Initialise {
       template <typename Machine>
       struct InitialiseMachine {
-        using Result = InitialiseMachine;
-        using PreemptingMachines = typename Before<Machines, Machine>::Result;
+        using PreemptingMachines = Before<Machines, Machine>;
         void operator()() {
           Context::prepare(run<Context, Machines, PreemptingMachines>);
           HFSM::Initialise<Kernel, Machine>()();
