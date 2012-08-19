@@ -1,8 +1,10 @@
 #ifndef CPPMETA_TEST_H
 #define CPPMETA_TEST_H
 
+#include "test-value.h"
 #include "test-meta.h"
 #include "test-list.h"
+#include "test-many.h"
 #include "test-tree.h"
 #include "test-queue.h"
 #include "test-hfsm.h"

@@ -167,11 +167,11 @@ namespace CppMeta {
       template <typename State>
       struct HasEventTransitionImpl {
         template <typename Target> using HasTransitionTo = HasTransition<DummyKernel, Machine, State, Event, Target>;
-        using Result = Any<Select<States, HasTransitionTo>>;
+        using Result = Any<States, HasTransitionTo>;
       };
       template <typename State> using HasEventTransition = typename HasEventTransitionImpl<State>::Result;
       
-      using Result = Any<Select<States, HasEventTransition>>;
+      using Result = Any<States, HasEventTransition>;
     };
     template <typename Machine, typename Event> using RespondsTo = typename RespondsToImpl<Machine, Event>::Result;
   }

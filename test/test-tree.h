@@ -1,6 +1,7 @@
 #ifndef CPPMETA_TEST_TREE_H
 #define CPPMETA_TEST_TREE_H
 
+#include "meta/value.h"
 #include "meta/meta.h"
 #include "meta/tree.h"
 
@@ -99,6 +100,9 @@ namespace CppMeta {
       static_assert(Same<Distance<TreeA, AA, AB>, Int<2>>::value, "failed");
       static_assert(Same<Distance<TreeA, ABA, ABC>, Int<2>>::value, "failed");
       static_assert(Same<Distance<TreeA, ADAB, ABB>, Int<5>>::value, "failed");
+      
+      static_assert(Same< Append<Tree<A, TreeAA, TreeAB>, AC>, Tree<A, TreeAA, TreeAB, Tree<AC>>>::value, "failed");
+      static_assert(Same<Prepend<AA, Tree<A, TreeAB, TreeAC>>, Tree<A, Tree<AA>, TreeAB, TreeAC>>::value, "failed");
     }
   }
 }

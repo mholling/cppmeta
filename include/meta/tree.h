@@ -28,7 +28,7 @@ namespace CppMeta {
   template <typename Type, typename Node, typename... Branches>
   struct ContainsImpl<Tree<Node, Branches...>, Type> {
     template <typename Branch> using ContainsType = Contains<Branch, Type>;
-    using Result = Any<Select<List<Branches...>, ContainsType>>;
+    using Result = Any<List<Branches...>, ContainsType>;
   };
   template <typename Node, typename... Branches>
   struct ContainsImpl<Tree<Node, Branches...>, Node> { using Result = Bool<true>; };
@@ -125,6 +125,16 @@ namespace CppMeta {
     using Result = Plus<Depth<Branch, Type1>, Depth<Branch, Type2>>;
   };
   template <typename Tree, typename Type1, typename Type2> using Distance = typename DistanceImpl<Tree, Type1, Type2>::Result;
+  
+  template <typename Tree, typename Type> struct AppendImpl;
+  template <typename Tree, typename Type> using Append = typename AppendImpl<Tree, Type>::Result;
+  template <typename Node, typename... Branches, typename Type>
+  struct AppendImpl<Tree<Node, Branches...>, Type> { using Result = Tree<Node, Branches..., Tree<Type>>; };
+  
+  template <typename Tree, typename Type> struct PrependImpl;
+  template <typename Tree, typename Type> using Prepend = typename PrependImpl<Tree, Type>::Result;
+  template <typename Node, typename... Branches, typename Type>
+  struct PrependImpl<Type, Tree<Node, Branches...>> { using Result = Tree<Node, Tree<Type>, Branches...>; };
 }
 
 #endif

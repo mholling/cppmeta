@@ -2,6 +2,7 @@
 #define CPPMETA_TEST_OS_H
 
 #include <assert.h>
+#include <cstdio>
 #include "meta/meta.h"
 #include "meta/os.h"
 
@@ -27,7 +28,7 @@ namespace CppMeta {
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
         struct DefaultConfiguration { static constexpr bool defaultflag = true; static constexpr int id = 1; };
-        template <typename Kernel, typename Config> struct Initialise { void operator()() { init(Config::id); } };
+        template <typename Kernel> struct Initialise { void operator()() { init(Kernel::template Configuration<D1>::id); } };
       };
       template <typename Kernel>
       struct D1::Handle<Kernel, Irq3> { void operator()() { d1_irq3_called = true; } };
@@ -37,7 +38,7 @@ namespace CppMeta {
         template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D1>;
         struct DefaultConfiguration { static constexpr int id = 2; };
-        template <typename Kernel, typename Config> struct Initialise { void operator()() { init(Config::id); } };
+        template <typename Kernel> struct Initialise { void operator()() { init(Kernel::template Configuration<D2>::id); } };
       };
       template <typename Kernel>
       struct D2::Handle<Kernel, Irq2> { static void handle() { d2_irq2_called = true; } };
@@ -48,7 +49,7 @@ namespace CppMeta {
         template <typename Kernel, typename Interrupt> struct Handle;
         using Dependencies = List<D1>;
         struct DefaultConfiguration { static constexpr int bitfield = 1; static constexpr int id = 3; };
-        template <typename Kernel, typename Config> struct Initialise { void operator()() { init(Config::id); } };
+        template <typename Kernel> struct Initialise { void operator()() { init(Kernel::template Configuration<D3>::id); } };
       };
       template <typename Kernel>
       struct D3::Handle<Kernel, Irq1> { void operator()() { d3_irq1_called = true; } };
@@ -56,7 +57,7 @@ namespace CppMeta {
       struct D4 {
         using Dependencies = List<D2>;
         struct DefaultConfiguration { using Types = List<int>; static constexpr int id = 4; };
-        template <typename Kernel, typename Config> struct Initialise { void operator()() { init(Config::id); } };
+        template <typename Kernel> struct Initialise { void operator()() { init(Kernel::template Configuration<D4>::id); } };
       };
       
       struct M1 {
@@ -97,9 +98,9 @@ namespace CppMeta {
       using Machines = List<M1, M2, M3>;
       using Kernel = OS::Kernel<Context, Machines>;
       
-      static_assert(Same<Kernel::Drivers, List<D1, D2, D3, D4>>::value, "failed");
+      static_assert(Same<Kernel::Drivers, List<D1, D3, D2, D4>>::value, "failed");
       
-      static_assert(Same<Kernel::Dependants<D1>, List<D2, D3, M1>>::value, "failed");
+      static_assert(Same<Kernel::Dependants<D1>, List<D3, D2, M1>>::value, "failed");
       static_assert(Same<Kernel::Dependants<D2>, List<D4>>::value, "failed");
       static_assert(Same<Kernel::Dependants<D3>, List<M1, M3>>::value, "failed");
       static_assert(Same<Kernel::Dependants<D4>, List<M2, M3>>::value, "failed");
@@ -114,11 +115,11 @@ namespace CppMeta {
       static_assert(Same<D4Config::Types, List<int, bool>>::value, "failed");
       
       using Interrupts = List<Irq1, Irq2, Irq3>;
-      using VectorTable = Kernel::VectorTable<Interrupts>;
+      using VectorTable = OS::VectorTable<Kernel, Interrupts>;
       
       VectorTable vector_table;
       void (** vectors)() = reinterpret_cast<void (**)()>(&vector_table);
-      
+
       void test() {
         d3_irq1_called = false; d1_irq3_called = false; d3_irq1_called = false; d2_irq2_called = false;
         vectors[0]();
@@ -134,7 +135,7 @@ namespace CppMeta {
         
         init_order = 0;
         Kernel::run();
-        assert(init_order == 1234);
+        assert(init_order == 1324);
       }
     }
   }

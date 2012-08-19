@@ -2,36 +2,43 @@
 #define CPPMETA_CORTEX_REGISTERS_H
 
 #include <stdint.h>
+#include "meta/value.h"
 #include "meta/meta.h"
 
 namespace CppMeta {
   namespace Cortex {
-    template <typename Type, uint32_t address>
+    template <typename Type, typename Address>
     struct Registers {
-      static Type& registers;
+      static constexpr Type& registers = *reinterpret_cast<Type *>(Address::value);
       
       template <volatile uint32_t Type::*rg>
-      static inline volatile uint32_t& reg() { return Registers::registers.*rg; }
+      static constexpr volatile uint32_t& reg() { return Registers::registers.*rg; }
       
       template <volatile uint16_t Type::*rg>
-      static inline volatile uint16_t& reg() { return Registers::registers.*rg; }
+      static constexpr volatile uint16_t& reg() { return Registers::registers.*rg; }
       
       template <volatile uint8_t Type::*rg>
-      static inline volatile uint8_t& reg() { return Registers::registers.*rg; }
+      static constexpr volatile uint8_t& reg() { return Registers::registers.*rg; }
+      
+      template <volatile const uint32_t Type::*rg>
+      static constexpr volatile const uint32_t& reg() { return Registers::registers.*rg; }
+      
+      template <volatile uint16_t Type::*rg>
+      static constexpr volatile const uint16_t& reg() { return Registers::registers.*rg; }
+      
+      template <volatile uint8_t Type::*rg>
+      static constexpr volatile const uint8_t& reg() { return Registers::registers.*rg; }
       
       template <typename RegisterType, volatile RegisterType Type::*rg, typename Mask>
       class BitField {
-        using Position = typename BitPosition<Mask>::Result;
-        using Width = typename BitCount<Mask>::Result;
+        unsigned int      : LowBitPosition<Mask>::value;
+        unsigned int bits : BitCount<Mask>::value;
+        unsigned int      : 8 * sizeof(RegisterType) - LowBitPosition<Mask>::value - BitCount<Mask>::value;
         
-        unsigned int      : Position::value;
-        unsigned int bits : Width::value;
-        unsigned int      : 8 * sizeof(RegisterType) - Position::value - Width::value;
-        
-        BitField();
-        ~BitField();
+        BitField(); ~BitField();
       public:
-        static volatile BitField& bitfield;
+        using Qualified = If<IsConst<RegisterType>, const BitField, BitField>;
+        static constexpr volatile Qualified& bitfield = *reinterpret_cast<volatile Qualified *>(&(registers.*rg));
         
         template <typename IntType>
         void operator=(const IntType& i) volatile { bits = i; }
@@ -41,21 +48,14 @@ namespace CppMeta {
       };
       
       template <volatile uint32_t Type::*rg, typename Mask>
-      static volatile BitField<uint32_t, rg, Mask>& bitfield() { return BitField<uint32_t, rg, Mask>::bitfield; }
+      static constexpr volatile typename BitField<uint32_t, rg, Mask>::Qualified& bitfield() { return BitField<uint32_t, rg, Mask>::bitfield; }
       
       template <volatile uint16_t Type::*rg, typename Mask>
-      static volatile BitField<uint16_t, rg, Mask>& bitfield() { return BitField<uint16_t, rg, Mask>::bitfield; }
+      static constexpr volatile typename BitField<uint16_t, rg, Mask>::Qualified& bitfield() { return BitField<uint16_t, rg, Mask>::bitfield; }
       
       template <volatile uint8_t Type::*rg, typename Mask>
-      static volatile BitField<uint8_t, rg, Mask>& bitfield() { return BitField<uint8_t, rg, Mask>::bitfield; }
+      static constexpr volatile typename BitField<uint8_t, rg, Mask>::Qualified& bitfield() { return BitField<uint8_t, rg, Mask>::bitfield; }
     };
-    
-    template <typename Type, uint32_t address>
-    Type& Registers<Type, address>::registers = *reinterpret_cast<Type *>(address);
-    
-    template <typename Type, uint32_t address>
-    template <typename RegisterType, volatile RegisterType Type::*rg, typename Mask>
-    volatile Registers<Type, address>::BitField<RegisterType, rg, Mask>& Registers<Type, address>::BitField<RegisterType, rg, Mask>::bitfield = *reinterpret_cast<volatile Registers<Type, address>::BitField<RegisterType, rg, Mask> *>(&(Registers::registers.*rg));
   }
 }
 

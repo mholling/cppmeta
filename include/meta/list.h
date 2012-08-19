@@ -4,7 +4,7 @@
 #include "meta.h"
 
 namespace CppMeta {
-  template <typename...> struct List;
+  template <typename...> struct List {};
   
   template <typename Type> struct IsListImpl { using Result = Bool<false>; };
   template <typename... Elements> struct IsListImpl<List<Elements...>> { using Result = Bool<true>; };
@@ -19,6 +19,28 @@ namespace CppMeta {
   template <typename Type, typename... Elements>
   struct PrependImpl<Type, List<Elements...>> { using Result = List<Type, Elements...>; };
   template <typename Type, typename List> using Prepend = typename PrependImpl<Type, List>::Result;
+  
+  template <typename List, typename Element, typename Type> struct InsertBeforeImpl;
+  template <typename List, typename Element, typename Type> using InsertBefore = typename InsertBeforeImpl<List, Element, Type>::Result;
+  template <typename Head, typename... Tail, typename Element, typename Type>
+  struct InsertBeforeImpl<List<Head, Tail...>, Element, Type> { using Result = Prepend<Head, InsertBefore<List<Tail...>, Element, Type>>; };
+  template <typename Head, typename... Tail, typename Type>
+  struct InsertBeforeImpl<List<Head, Tail...>, Head, Type> { using Result = List<Type, Head, Tail...>; };
+  
+  template <typename List, typename Element, typename Type> struct InsertAfterImpl;
+  template <typename List, typename Element, typename Type> using InsertAfter = typename InsertAfterImpl<List, Element, Type>::Result;
+  template <typename Head, typename... Tail, typename Element, typename Type>
+  struct InsertAfterImpl<List<Head, Tail...>, Element, Type> { using Result = Prepend<Head, InsertAfter<List<Tail...>, Element, Type>>; };
+  template <typename Head, typename... Tail, typename Type>
+  struct InsertAfterImpl<List<Head, Tail...>, Head, Type> { using Result = List<Head, Type, Tail...>; };
+  
+  template <typename List, typename Element, typename Replacement> struct ReplaceImpl;
+  template <typename List, typename Element, typename Replacement> using Replace = typename ReplaceImpl<List, Element, Replacement>::Result;
+  template <typename Head, typename... Tail, typename Element, typename Replacement>
+  struct ReplaceImpl<List<Head, Tail...>, Element, Replacement> { using Result = Prepend<Head, Replace<List<Tail...>, Element, Replacement>>; };
+  template <typename... Tail, typename Element, typename Replacement>
+  struct ReplaceImpl<List<Element, Tail...>, Element, Replacement> { using Result = List<Replacement, Tail...>; };
+  
   
   template <typename List1, typename List2> struct ConcatImpl;
   template <typename... Elements1, typename... Elements2>
@@ -83,9 +105,14 @@ namespace CppMeta {
   template <typename Head, typename... Tail, template <typename> class Predicate>
   struct FindImpl<List<Head, Tail...>, Predicate> { using Result = If<Predicate<Head>, Head, FindImpl<List<Tail...>, Predicate>>; };
   
-  template <typename List> using Any = GreaterThan<Length<List>, Int<0>>;
-  template <typename List> using Many = GreaterThan<Length<List>, Int<1>>;
   template <typename List> using Empty = Same<Length<List>, Int<0>>;
+  template <typename List> using NotEmpty = GreaterThan<Length<List>, Int<0>>;
+  template <typename List> using Many = GreaterThan<Length<List>, Int<1>>;
+  template <typename List> using One = Same<Length<List>, Int<1>>;
+  
+  template <typename List, template <typename> class Predicate> using Any = NotEmpty<Select<List, Predicate>>;
+  template <typename List, template <typename> class Predicate> using All = Same<Select<List, Predicate>, List>;
+  template <typename List, template <typename> class Predicate> using None = Empty<Select<List, Predicate>>;
   
   template <typename List, typename Type> struct ContainsImpl;
   template <typename List, typename Type> using Contains = typename ContainsImpl<List, Type>::Result;
@@ -102,6 +129,16 @@ namespace CppMeta {
     using Result = Inject<L, AppendIfNew, List<>>;
   };
   template <typename List> using Unique = typename UniqueImpl<List>::Result;
+  
+  template <typename List, typename ContainingList> struct IsSubsetOfImpl;
+  template <typename List, typename ContainingList> using IsSubsetOf = typename IsSubsetOfImpl<List, ContainingList>::Result;
+  template <typename List, typename ContainingList>
+  struct IsSubsetOfImpl {
+    template <typename Type> using IsContained = Contains<ContainingList, Type>;
+    using Result = All<List, IsContained>;
+  };
+  
+  template <typename List1, typename List2> using SameElements = And<IsSubsetOf<List1, List2>, IsSubsetOf<List2, List1>>;
   
   template <typename List, typename Type> struct IndexImpl;
   template <typename List, typename Type> using Index = typename IndexImpl<List, Type>::Result;
@@ -166,6 +203,13 @@ namespace CppMeta {
   template <typename Type, typename... Tail>
   struct AfterImpl<List<Type, Tail...>, Type> { using Result = List<Tail...>; };
   
+  template <typename List, typename Excluded>
+  struct ExcludeImpl {
+    template <typename Type> using IsExcluded = Contains<Excluded, Type>;
+    using Result = Reject<List, IsExcluded>;
+  };
+  template <typename List, typename Excluded> using Exclude = typename ExcludeImpl<List, Excluded>::Result;
+  
   template <typename List, template <typename, typename> class LessThan> struct SortImpl;
   template <typename List, template <typename, typename> class LessThan> using Sort = typename SortImpl<List, LessThan>::Result;
   template <typename L, template <typename, typename> class LessThan>
@@ -205,36 +249,36 @@ namespace CppMeta {
   template <typename Head, typename... Tail, template <typename> class Function>
   struct Each<List<Head, Tail...>, Function> {
     template <typename... Args>
-    void operator ()(Args... args) { Function<Head>()(args...); Each<List<Tail...>, Function>()(args...); }
+    void operator()(Args... args) { Function<Head>()(args...); Each<List<Tail...>, Function>()(args...); }
   };
   template <template <typename> class Function>
   struct Each<List<>, Function> {
     template <typename... Args>
-    void operator ()(Args... args) { }
+    void operator()(Args... args) { }
   };
   
   template <typename List, template <typename> class Function = Self> struct While;
   template <typename Head, typename... Tail, template <typename> class Function>
   struct While<List<Head, Tail...>, Function> {
     template <typename... Args>
-    bool operator ()(Args... args) { return Function<Head>()(args...) && While<List<Tail...>, Function>()(args...); }
+    bool operator()(Args... args) { return Function<Head>()(args...) && While<List<Tail...>, Function>()(args...); }
   };
   template <template <typename> class Function>
   struct While<List<>, Function> {
     template <typename... Args>
-    bool operator ()(Args... args) { return true; }
+    bool operator()(Args... args) { return true; }
   };
   
   template <typename List, template <typename> class Function = Self> struct Until;
   template <typename Head, typename... Tail, template <typename> class Function>
   struct Until<List<Head, Tail...>, Function> {
     template <typename... Args>
-    bool operator ()(Args... args) { return Function<Head>()(args...) || Until<List<Tail...>, Function>()(args...); }
+    bool operator()(Args... args) { return Function<Head>()(args...) || Until<List<Tail...>, Function>()(args...); }
   };
   template <template <typename> class Function>
   struct Until<List<>, Function> {
     template <typename... Args>
-    bool operator ()(Args... args) { return false; }
+    bool operator()(Args... args) { return false; }
   };
 }
 

@@ -2,7 +2,7 @@
 #define CPPMETA_TEST_QUEUE_H
 
 #include <assert.h>
-#include "meta/meta.h"
+
 #include "meta/queue.h"
 
 namespace CppMeta {

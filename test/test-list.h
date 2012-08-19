@@ -2,6 +2,7 @@
 #define CPPMETA_TEST_LIST_H
 
 #include <assert.h>
+#include "meta/value.h"
 #include "meta/meta.h"
 #include "meta/list.h"
 
@@ -15,6 +16,16 @@ namespace CppMeta {
       static_assert(Same<Append<List<>, float>, List<float>>::value, "failed");
       static_assert(Same<Prepend<float, List<char, int>>, List<float, char, int>>::value, "failed");
       static_assert(Same<Prepend<float, List<>>, List<float>>::value, "failed");
+      
+      static_assert(Same<InsertBefore<List<int, bool, float>, bool, char>, List<int, char, bool, float>>::value, "failed");
+      static_assert(Same<InsertBefore<List<int, bool, float>, int, char>, List<char, int, bool, float>>::value, "failed");
+      static_assert(Same<InsertAfter<List<int, bool, float>, bool, char>, List<int, bool, char, float>>::value, "failed");
+      static_assert(Same<InsertAfter<List<int, bool, float>, float, char>, List<int, bool, float, char>>::value, "failed");
+      
+      static_assert(Same<Replace<List<int, bool, char, float>, bool, long>, List<int, long, char, float>>::value, "failed");
+      static_assert(Same<Replace<List<int, bool, char, float>, int, long>, List<long, bool, char, float>>::value, "failed");
+      static_assert(Same<Replace<List<int, bool, char, float>, float, long>, List<int, bool, char, long>>::value, "failed");
+      
       static_assert(Same<Concat<List<char, int>, List<float, bool>>, List<char, int, float, bool>>::value, "failed");
 
       static_assert(Same<Reverse<List<float, char, bool, int>>, List<int, bool, char, float>>::value, "failed");
@@ -35,25 +46,45 @@ namespace CppMeta {
       static_assert(Length<List<int, int, float>>::value == 3, "failed");
       static_assert(Length<List<>>::value == 0, "failed");
 
-      static_assert(Any<List<int, char>>::value, "failed");
-      static_assert(!Any<List<>>::value, "failed");
+      static_assert(!Empty<List<int, char>>::value, "failed");
+      static_assert(Empty<List<>>::value, "failed");
+
+      static_assert(NotEmpty<List<int, char>>::value, "failed");
+      static_assert(!NotEmpty<List<>>::value, "failed");
 
       static_assert(Many<List<int, char>>::value, "failed");
       static_assert(!Many<List<int>>::value, "failed");
       static_assert(!Many<List<>>::value, "failed");
-
-      static_assert(!Empty<List<int, char>>::value, "failed");
-      static_assert(Empty<List<>>::value, "failed");
+      
+      static_assert(!One<List<int, char>>::value, "failed");
+      static_assert(One<List<int>>::value, "failed");
+      static_assert(!One<List<>>::value, "failed");
+      
+      static_assert(Any<List<int, bool, float, char>, IsFloat>::value, "failed");
+      static_assert(!Any<List<int, bool, long, char>, IsFloat>::value, "failed");
+      
+      static_assert(All<List<float, float, float, float>, IsFloat>::value, "failed");
+      static_assert(!All<List<int, bool, long, char>, IsFloat>::value, "failed");
+      
+      static_assert(None<List<int, char, bool, long>, IsFloat>::value, "failed");
+      static_assert(!None<List<int, char, float, long>, IsFloat>::value, "failed");
 
       static_assert(Contains<List<int, char, float>, float>::value, "failed");
       static_assert(!Contains<List<int, char, float>, bool>::value, "failed");
       static_assert(!Contains<List<>, char>::value, "failed");
-
-      static_assert(Same<Unique<List<int, char, bool>>, List<int, char, bool>>::value, "failed");
-      static_assert(Same<Unique<List<int, char, bool, char, float>>, List<int, char, bool, float>>::value, "failed");
+      
+      static_assert(IsSubsetOf<List<int, bool>, List<char, bool, float, int>>::value, "failed");
+      static_assert(!IsSubsetOf<List<int, long>, List<char, bool, float, int>>::value, "failed");
 
       static_assert(Same<Index<List<int, char, bool>, int>, Int<0>>::value, "failed");
       static_assert(Same<Index<List<int, char, bool, float>, bool>, Int<2>>::value, "failed");
+      
+      static_assert(SameElements<List<int, bool, char>, List<char, bool, int>>::value, "failed");
+      static_assert(SameElements<List<int, bool, char>, List<char, int, bool, int>>::value, "failed");
+      static_assert(!SameElements<List<int, bool, char, float>, List<char, bool, int>>::value, "failed");
+
+      static_assert(Same<Unique<List<int, char, bool>>, List<int, char, bool>>::value, "failed");
+      static_assert(Same<Unique<List<int, char, bool, char, float>>, List<int, char, bool, float>>::value, "failed");
 
       static_assert(Same<First<List<int, char, bool>>, int>::value, "failed");
       static_assert(Same<Last<List<int, char, bool>>, bool>::value, "failed");
@@ -70,7 +101,11 @@ namespace CppMeta {
       static_assert(Same<Before<List<int, char, bool, float>, int>, List<>>::value, "failed");
       static_assert(Same<After<List<int, char, bool, float>, char>, List<bool, float>>::value, "failed");
       static_assert(Same<After<List<int, char, bool, float>, float>, List<>>::value, "failed");
-
+      
+      static_assert(Same<Exclude<List<int, bool, char, float>, List<bool, char>>, List<int, float>>::value, "failed");
+      static_assert(Same<Exclude<List<int, bool, char, float>, List<bool, long>>, List<int, char, float>>::value, "failed");
+      static_assert(Same<Exclude<List<int, bool, char, float>, List<unsigned, long>>, List<int, bool, char, float>>::value, "failed");
+      
       using Unsorted = List<Int<1>, Int<6>, Int<0>, Int<4>, Int<3>, Int<2>, Int<5>>;
       using Sorted   = List<Int<0>, Int<1>, Int<2>, Int<3>, Int<4>, Int<5>, Int<6>>;
       static_assert(Same<Sort<Unsorted, LessThan>, Sorted>::value, "failed");

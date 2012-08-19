@@ -19,7 +19,7 @@ namespace CppMeta {
       using RespondingMachines = Select<Machines, RespondsToEvent>;
     
       struct PushContext { void operator()() { Context::push(); } };
-      using PushContextNeeded = Any<RespondingMachines>;
+      using PushContextNeeded = NotEmpty<RespondingMachines>;
       using PushContextIfNeeded = If<PushContextNeeded, PushContext, DoNothing>;
     
       void operator()() {
