@@ -21,8 +21,7 @@ namespace CppMeta {
       volatile const uint32_t CALIB;                   /*!< Offset: 0x00C (R/ )  SysTick Calibration Register        */
     };
     
-    template <typename Address>
-    struct SysTick : Registers<SysTick_Type, Address> {
+    struct SysTick : Registers<SysTick_Type, Addresses::SysTick> {
       using CTRL_COUNTFLAG = UInt32<1UL<<16>;
       using CTRL_CLKSOURCE = UInt32<1UL<<2>;
       using CTRL_TICKINT   = UInt32<1UL<<1>;
@@ -33,9 +32,9 @@ namespace CppMeta {
       using CALIB_SKEW     = UInt32<1UL<<30>;
       using CALIB_TENMS    = UInt32<0xFFFFFFUL<<0>;
       
-      using Dependencies = List<Nvic1>;
+      using Dependencies = List<Nvic>;
       
-      struct DefaultConfiguration {
+      struct DefaultConfiguration { // TODO
         using Periods = List<>;
         using ResolutionInMicroseconds = Int<1000>;
         using FrequencyInHz = Int<72000000>;
@@ -92,10 +91,7 @@ namespace CppMeta {
       };
     };
     
-    template <typename Address>
-    volatile uint64_t SysTick<Address>::systicks = 0;
-    
-    using SysTick1 = SysTick<Addresses::SysTick>;
+    volatile uint64_t SysTick::systicks = 0;
   }
 }
 

@@ -2,6 +2,7 @@
 #define CPPMETA_CORTEX_SCB_H
 
 #include <stdint.h>
+#include "meta/value.h"
 #include "cortex/registers.h"
 #include "cortex/addresses.h"
 #include "cortex/irqs.h"
@@ -32,8 +33,7 @@ namespace CppMeta {
       volatile uint32_t CPACR;               /*!< Offset: 0x088 (R/W)  Coprocessor Access Control Register                   */
     };
     
-    template <typename Address>
-    struct Scb : Registers<SCB_Type, Address> {
+    struct Scb : Registers<SCB_Type, Addresses::SCB> {
       using CPUID_IMPLEMENTER    = UInt32<0xFFUL<<24>;
       using CPUID_VARIANT        = UInt32<0xFUL<<20>;
       using CPUID_ARCHITECTURE   = UInt32<0xFUL<<16>;
@@ -139,10 +139,7 @@ namespace CppMeta {
       };
     };
     
-    template <typename Address>
-    void (*Scb<Address>::preempt)();
-    
-    using Scb1 = Scb<Addresses::SCB>;
+    void (*Scb::preempt)();
   }
 }
 

@@ -1,6 +1,8 @@
 #ifndef CPPMETA_STM32_VARIANTS_H
 #define CPPMETA_STM32_VARIANTS_H
 
+#include "meta/tree.h"
+
 namespace CppMeta {
   namespace Stm32 {
     struct STM32F;
@@ -17,16 +19,20 @@ namespace CppMeta {
     
     using Variants =
       Tree<STM32F,
-      Tree<STM32F4XX>,
-      Tree<STM32F10X,
-        Tree<STM32F10X_CL>,
-        Tree<STM32F10X_LD,
-          Tree<STM32F10X_LD_VL>>,
-        Tree<STM32F10X_MD,
-          Tree<STM32F10X_MD_VL>>,
-        Tree<STM32F10X_HD,
-          Tree<STM32F10X_HD_VL>>,
-        Tree<STM32F10X_XL>>>;
+        Tree<STM32F4XX>,
+        Tree<STM32F10X,
+          Tree<STM32F10X_CL>,
+          Tree<STM32F10X_VL,
+            Tree<STM32F10X_LD_VL>,
+            Tree<STM32F10X_MD_VL>,
+            Tree<STM32F10X_HD_VL>
+          >,
+          Tree<STM32F10X_XL>,
+          Tree<STM32F10X_LD>,
+          Tree<STM32F10X_MD>,
+          Tree<STM32F10X_HD>
+        >
+      >;
   }
 }
 

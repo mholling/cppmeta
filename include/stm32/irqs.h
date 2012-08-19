@@ -1,8 +1,7 @@
 #ifndef CPPMETA_STM32_IRQS_H
 #define CPPMETA_STM32_IRQS_H
 
-#include "meta/list.h"
-#include "cortex/irqs.h"
+#include "meta/value.h"
 
 namespace CppMeta {
   namespace Stm32 {

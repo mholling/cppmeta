@@ -2,6 +2,7 @@
 #define CPPMETA_STM32_RCC_H
 
 #include <stdint.h>
+#include "meta/value.h"
 #include "stm32/registers.h"
 #include "stm32/addresses.h"
 #include "stm32/irqs.h"
@@ -41,8 +42,7 @@ namespace CppMeta {
       volatile uint32_t PLLI2SCFGR;    /*!< RCC PLLI2S configuration register,                           Address offset: 0x84 */
     };
     
-    template <typename Address>
-    struct Rcc : Registers<RCC_Type, Address> {
+    struct Rcc : Registers<RCC_Type, Addresses::RCC> {
       using CR_HSION                = UInt32<0x00000001>;
       using CR_HSIRDY               = UInt32<0x00000002>;
       using CR_HSITRIM              = UInt32<0x000000F8>;
@@ -395,12 +395,10 @@ namespace CppMeta {
       template <typename Kernel>
       struct Initialise {
         void operator()() {
-          
+          // TODO
         }
       };
     };
-    
-    using Rcc1 = Rcc<Addresses::RCC>;
   }
 }
 

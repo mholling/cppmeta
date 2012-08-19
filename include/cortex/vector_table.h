@@ -9,7 +9,7 @@
 namespace CppMeta {
   namespace Cortex {
     template <typename Machines, typename HighestInterrupt>
-    using VectorTable = OS::VectorTable<OS::Kernel<Scb1, Machines>, Sequence<Int<-15>, HighestInterrupt>>;
+    using VectorTable = OS::VectorTable<OS::Kernel<Scb, Machines>, Sequence<Int<-15>, HighestInterrupt>>;
   }
 }
 

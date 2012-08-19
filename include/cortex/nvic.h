@@ -10,6 +10,12 @@
 #include "cortex/addresses.h"
 #include "cortex/scb.h"
 
+extern "C" int __libc_init_array(void);
+extern unsigned __data_start;       /* start of .data in the linker script */
+extern unsigned __data_end;         /* end of .data in the linker script   */
+extern unsigned const __data_load;  /* initialization values for .data     */
+extern unsigned __bss_start;        /* start of .bss in the linker script  */
+extern unsigned __bss_end;          /* end of .bss in the linker script    */
 
 namespace CppMeta {
   namespace Cortex {
@@ -29,10 +35,9 @@ namespace CppMeta {
       volatile uint32_t STIR;                    /*!< Offset: 0xE00 ( /W)  Software Trigger Interrupt Register     */
     };
     
-    template <typename NvicAddress>
-    struct Nvic : Registers<NVIC_Type, NvicAddress> {
+    struct Nvic : Registers<NVIC_Type, Addresses::NVIC> {
       using STIR_INTID = UInt32<0x1FF>;
-      using Dependencies = List<Scb1>; // TODO?
+      using Dependencies = List<Scb>; // TODO?
       
       struct DefaultConfiguration {
         using PriorityBits = Int<4>;
@@ -94,7 +99,8 @@ namespace CppMeta {
         static_assert(Not<Contains<Flatten<IrqGroups>, Irqs::SVCall>>::value, "setting SVCall interrupt priority not allowed");
         static_assert(All<Flatten<IrqGroups>, IsPrioritisable>::value, "not a valid prioritisable interrupt");
         
-        using GroupBits = HighBitPosition<Decrement<LeftShift<Length<IrqGroups>, Int<1>>>>; // TODO: this fails if IrqGroups is empty!
+        using Groups = If<Empty<IrqGroups>, List<List<List<>>>, IrqGroups>;
+        using GroupBits = HighBitPosition<Decrement<LeftShift<Length<Groups>, Int<1>>>>;
         static_assert(GreaterThanOrEqualTo<PriorityBits, GroupBits>::value, "too many interrupt priority groups");
         using SubGroupBits = Minus<PriorityBits, GroupBits>;
         using PriGroup = Minus<Int<7>, GroupBits>;
@@ -109,7 +115,7 @@ namespace CppMeta {
             using Priority = LeftShift<GroupAndSubGroup, UnusedBits>;
             static_assert(LessThan<GroupAndSubGroup, Decrement<PowerOfTwo<PriorityBits>>>::value, "too many interrupt priority groups and/or subgroups");
             
-            template <typename Irq> struct SetCore { void operator()() { Scb1::registers.SHP[Plus<Int<12>, Irq>::value] = Priority::value; } };
+            template <typename Irq> struct SetCore { void operator()() { Scb::registers.SHP[Plus<Int<12>, Irq>::value] = Priority::value; } };
             template <typename Irq> struct SetPeripheral { void operator()() { Nvic::registers.IP[Irq::value] = Priority::value; } };
             template <typename Irq> using SetPriority = If<IsCore<Irq>, SetCore<Irq>, SetPeripheral<Irq>>;
             void operator()() { Each<IrqSubGroup, SetPriority>()(); }
@@ -119,8 +125,8 @@ namespace CppMeta {
 
         void operator()() {
           for (int n = 0; n < 240; ++n) Nvic::registers.IP[n] = 0xff;
-          for (int n = 0; n < 12; ++n) Scb1::registers.SHP[n] = 0xff;
-          Scb1::template bitfield<&SCB_Type::AIRCR, Scb1::AIRCR_PRIGROUP>() = PriGroup::value;
+          for (int n = 0; n < 12; ++n) Scb::registers.SHP[n] = 0xff;
+          Scb::template bitfield<&SCB_Type::AIRCR, Scb::AIRCR_PRIGROUP>() = PriGroup::value;
           Each<MapWithIndex<IrqGroups, SetGroupPriority>>()();
         }
       };
@@ -191,11 +197,11 @@ namespace CppMeta {
         };
         template <typename Memo, typename Driver> using AddPriorities = Eval<AddPrioritiesImpl<Memo, Driver>>;
         
-        using DriversExceptScb = Exclude<Drivers, List<Scb1>>;
+        using DriversExceptScb = Exclude<Drivers, List<Scb>>;
         using DriverPrioritisedIrqs = NestedUnique<Inject<DriversExceptScb, AddPriorities, List<List<List<>>>>>;
         
         void operator()() {
-          // int ***x = DriverPrioritisedIrqs(); // enable to show list of priority groupings
+          // If<Empty<DriverPrioritisedIrqs>, DoNothing, SetPriorities<DriverPrioritisedIrqs, PriorityBits>>()();
           SetPriorities<DriverPrioritisedIrqs, PriorityBits>()();
           EnableMany<HandledPeripheralIrqs>()();
         }
@@ -205,18 +211,18 @@ namespace CppMeta {
       template <typename Kernel>
       struct Handle<Kernel, Irqs::Reset> {
         static void handle() {
-          // TODO: do c++ memory initialisation, etc.
+          unsigned const *src = &__data_load;
+          for (unsigned *dst = &__data_start; dst < &__data_end; ++dst, ++src)
+            *dst = *src;
+          for (unsigned *dst = &__bss_start; dst < &__bss_end; ++dst)
+            *dst = 0;
+          __libc_init_array();
+          
           Kernel::run();
         }
       };
-      
     };
-    
-    using Nvic1 = Nvic<Addresses::NVIC>;
   }
 }
-
-// TODO: use Eval<> for all metafunctions; move Eval<> to eval.h before value.h and meta.h
-// TODO: make all drivers into templates for Kernel
 
 #endif

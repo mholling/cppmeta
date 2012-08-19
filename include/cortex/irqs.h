@@ -1,11 +1,10 @@
 #ifndef CPPMETA_CORTEX_IRQS_H
 #define CPPMETA_CORTEX_IRQS_H
 
-#include "meta/list.h"
+#include "meta/value.h"
 
 namespace CppMeta {
   namespace Cortex {
-    template <typename Number> struct Irq;
     namespace Irqs {
       using Reset            = Int<-15>;
       using NonMaskableInt   = Int<-14>;    /*!< 2 Non Maskable Interrupt                                          */
