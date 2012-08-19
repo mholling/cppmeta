@@ -7,6 +7,17 @@
 namespace CppMeta {
   namespace Test {
     namespace TestValue {
+      struct MakeChar { using Result = char; };
+      template <typename Type> struct MakeType { using Result = Type; };
+      
+      static_assert(!CanEval<int>::value, "failed");
+      static_assert(CanEval<MakeChar>::value, "failed");
+      static_assert(CanEval<MakeType<long>>::value, "failed");
+      
+      static_assert(Same<Eval<int>, int>::value, "failed");
+      static_assert(Same<Eval<MakeChar>, char>::value, "failed");
+      static_assert(Same<Eval<MakeType<long>>, long>::value, "failed");
+      
       static_assert(Same<Bit<0>, Int<(1<<0)>>::value, "failed");
       static_assert(Same<Bit<1>, Int<(1<<1)>>::value, "failed");
       static_assert(Same<Bit<2>, Int<(1<<2)>>::value, "failed");

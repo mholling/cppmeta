@@ -136,7 +136,7 @@ namespace CppMeta {
           template <typename Driver> using HandlesIrq = OS::template Handles<Kernel, Driver, Irq>;
           using Result = Any<Drivers, HandlesIrq>;
         };
-        template <typename Irq> using IsHandled = typename IsHandledImpl<Irq>::Result;
+        template <typename Irq> using IsHandled = Eval<IsHandledImpl<Irq>>;
         using HandledPeripheralIrqs = Select<PeripheralIrqs, IsHandled>;
         
         template <typename Driver>
@@ -145,23 +145,23 @@ namespace CppMeta {
           template <typename>   static Bool<false> test(...);
           using Result = decltype(test<Driver>(0));
         };
-        template <typename Driver> using HasPrioritisedIrqs = typename HasPrioritisedIrqsImpl<Driver>::Result;
+        template <typename Driver> using HasPrioritisedIrqs = Eval<HasPrioritisedIrqsImpl<Driver>>;
         template <typename Driver> struct GetPrioritisedIrqsImpl { using Result = typename Driver::PrioritisedIrqs; };
         
         template <typename Target, typename Source> struct NestedAppendImpl;
-        template <typename Target, typename Source> using NestedAppend = typename NestedAppendImpl<Target, Source>::Result;
+        template <typename Target, typename Source> using NestedAppend = Eval<NestedAppendImpl<Target, Source>>;
         template <typename Target, typename... Types>
         struct NestedAppendImpl<Target, List<List<Types...>>> { using Result = Replace<Target, Last<Target>, NestedAppend<Last<Target>, List<Types...>>>; };
         template <typename Target, typename... Types>
         struct NestedAppendImpl<Target, List<Types...>> { using Result = Concat<Target, List<Types...>>; };
         
         template <typename Target, typename Exclude = List<>> struct NestedUniqueImpl;
-        template <typename Target, typename Exclude = List<>> using NestedUnique = typename NestedUniqueImpl<Target, Exclude>::Result;
+        template <typename Target, typename Exclude = List<>> using NestedUnique = Eval<NestedUniqueImpl<Target, Exclude>>;
         template <typename Target, typename Exclude>
         struct NestedUniqueImpl {
           template <typename Memo, typename Type>
           struct AddUniqueImpl { using Result = If<Contains<Concat<Exclude, Flatten<Memo>>, Type>, Memo, Append<Memo, Type>>; };
-          template <typename Memo, typename Type> using AddUnique = typename AddUniqueImpl<Memo, Type>::Result;
+          template <typename Memo, typename Type> using AddUnique = Eval<AddUniqueImpl<Memo, Type>>;
           template <typename Memo, typename... Types>
           struct AddUniqueImpl<Memo, List<Types...>> {
             using AppliedToNested = NestedUnique<List<Types...>, Concat<Exclude, Flatten<Memo>>>;
@@ -189,7 +189,7 @@ namespace CppMeta {
           
           using Result = NestedAppend<Memo, DriverPrioritisedIrqs>;
         };
-        template <typename Memo, typename Driver> using AddPriorities = typename AddPrioritiesImpl<Memo, Driver>::Result;
+        template <typename Memo, typename Driver> using AddPriorities = Eval<AddPrioritiesImpl<Memo, Driver>>;
         
         using DriversExceptScb = Exclude<Drivers, List<Scb1>>;
         using DriverPrioritisedIrqs = NestedUnique<Inject<DriversExceptScb, AddPriorities, List<List<List<>>>>>;

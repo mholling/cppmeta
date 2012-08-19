@@ -15,15 +15,6 @@ namespace CppMeta {
       static_assert(Same<Self<int>, int>::value, "failed");
       static_assert(!Same<Self<bool>, int>::value, "failed");
       
-      struct MakeChar { using Result = char; };
-      template <typename Type> struct MakeType { using Result = Type; };
-      static_assert(!CanEval<int>::value, "failed");
-      static_assert(CanEval<MakeChar>::value, "failed");
-      static_assert(CanEval<MakeType<long>>::value, "failed");
-      static_assert(Same<Eval<int>, int>::value, "failed");
-      static_assert(Same<Eval<MakeChar>, char>::value, "failed");
-      static_assert(Same<Eval<MakeType<long>>, long>::value, "failed");
-      
       static_assert(Same<If<Bool<true>, int, char>, int>::value, "failed");
       static_assert(Same<If<Bool<false>, int, char>, char>::value, "failed");
       

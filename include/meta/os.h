@@ -13,7 +13,7 @@ namespace CppMeta {
       template <typename>   static Bool<false> test(...);
       using Result = decltype(test<DriverOrMachine>(0));
     };
-    template <typename DriverOrMachine> using HasDependencies = typename HasDependenciesImpl<DriverOrMachine>::Result;
+    template <typename DriverOrMachine> using HasDependencies = Eval<HasDependenciesImpl<DriverOrMachine>>;
     
     template <typename DriverOrMachine> struct DependenciesImpl { using Result = typename DriverOrMachine::Dependencies; };
     template <typename DriverOrMachine> using Dependencies = If<HasDependencies<DriverOrMachine>, DependenciesImpl<DriverOrMachine>, List<>>;
@@ -21,7 +21,7 @@ namespace CppMeta {
     template <typename DriverOrMachine, typename Driver> using DependsOn = Contains<Dependencies<DriverOrMachine>, Driver>;
     
     template <typename Driver> struct DependenciesAndSelfImpl;
-    template <typename Driver> using  DependenciesAndSelf = typename DependenciesAndSelfImpl<Driver>::Result;
+    template <typename Driver> using DependenciesAndSelf = Eval<DependenciesAndSelfImpl<Driver>>;
     template <typename Driver>
     struct DependenciesAndSelfImpl {
       using Result = Unique<Append<Flatten<Map<Dependencies<Driver>, DependenciesAndSelf>>, Driver>>;
@@ -43,7 +43,7 @@ namespace CppMeta {
         template <typename Candidate> using DependsOnDriver = DependsOn<Candidate, Driver>;
         using Result = Select<Concat<Drivers, Machines>, DependsOnDriver>;
       };
-      template <typename Driver> using Dependants = typename DependantsImpl<Driver>::Result;
+      template <typename Driver> using Dependants = Eval<DependantsImpl<Driver>>;
       
       template <typename Driver>
       struct ConfigurationImpl {
@@ -60,14 +60,14 @@ namespace CppMeta {
           template <typename>   static Bool<false> test(...);
           using Result = decltype(test<Candidate>(0));
         };
-        template <typename Candidate> using ConfiguresDriver = typename ConfiguresDriverImpl<Candidate>::Result;
+        template <typename Candidate> using ConfiguresDriver = Eval<ConfiguresDriverImpl<Candidate>>;
         
         using Configurers = Select<Dependants<Driver>, ConfiguresDriver>;
         
         template <typename Memo, typename Configurer> using AddConfiguration = typename Configurer::template Configure<Driver, Memo>;
         using Result = Inject<Configurers, AddConfiguration, DefaultConfiguration>;
       };
-      template <typename Driver> using Configuration = typename ConfigurationImpl<Driver>::Result;
+      template <typename Driver> using Configuration = Eval<ConfigurationImpl<Driver>>;
       
       struct Run {
         template <typename Driver> using Initialise = typename Driver::template Initialise<Kernel>;
@@ -87,7 +87,7 @@ namespace CppMeta {
       template <typename>   static Bool<false> test(...);
       using Result = decltype(test<Driver>(0));
     };
-    template <typename Kernel, typename Driver, typename Interrupt> using Handles = typename HandlesImpl<Kernel, Driver, Interrupt>::Result;
+    template <typename Kernel, typename Driver, typename Interrupt> using Handles = Eval<HandlesImpl<Kernel, Driver, Interrupt>>;
 
     template <typename Kernel, typename Interrupts>
     struct VectorTableImpl {
@@ -106,7 +106,7 @@ namespace CppMeta {
           template <typename>   static Bool<false> test(...);
           using Result = decltype(test<Handler>(0));
         };
-        template <typename Handler> using UsurpsInterrupt = typename UsurpsInterruptImpl<Handler>::Result;
+        template <typename Handler> using UsurpsInterrupt = Eval<UsurpsInterruptImpl<Handler>>;
         
         using UsurpingHandlers = Select<Handlers, UsurpsInterrupt>;
         
@@ -119,7 +119,7 @@ namespace CppMeta {
         struct SharedHandler { static void handle() { Each<SharingHandlers>()(); } };
         using Result = First<Append<UsurpingHandlers, SharedHandler>>;
       };
-      template <typename Driver> using Handler = typename HandlerImpl<Driver>::Result;
+      template <typename Driver> using Handler = Eval<HandlerImpl<Driver>>;
       
       template <typename Table, typename Interrupt>
       struct AddHandlerToTable : Table {
@@ -130,7 +130,7 @@ namespace CppMeta {
       struct EmptyTable { };
       using Result = Inject<Interrupts, AddHandlerToTable, EmptyTable>;
     };
-    template <typename Kernel, typename Interrupts> using VectorTable = typename VectorTableImpl<Kernel, Interrupts>::Result;
+    template <typename Kernel, typename Interrupts> using VectorTable = Eval<VectorTableImpl<Kernel, Interrupts>>;
   }
 }
 

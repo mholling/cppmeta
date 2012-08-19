@@ -19,7 +19,7 @@ namespace CppMeta {
     int CurrentState<Machine>::index = 0;
     
     template <typename States> struct DefaultPathImpl;
-    template <typename States> using DefaultPath = typename DefaultPathImpl<States>::Result;
+    template <typename States> using DefaultPath = Eval<DefaultPathImpl<States>>;
     template <typename State, typename FirstSubstate, typename... OtherSubstates>
     struct DefaultPathImpl<Tree<State, FirstSubstate, OtherSubstates...>> { using Result = Prepend<State, DefaultPath<FirstSubstate>>; };
     template <typename State>
@@ -36,7 +36,7 @@ namespace CppMeta {
           template <typename>   static Bool<false> test(...);
           using Result = decltype(test<Machine>(0));
         };
-        template <typename State> using HasExit = typename HasExitImpl<State>::Result;
+        template <typename State> using HasExit = Eval<HasExitImpl<State>>;
         
         template <typename State> struct Exit { void operator()() { typename Machine::template Exit<Kernel, State>()(); } };
         using ExitPath = SelfAndAncestors<Substates, Candidate>;
@@ -60,7 +60,7 @@ namespace CppMeta {
         template <typename>   static Bool<false> test(...);
         using Result = decltype(test<Machine>(0));
       };
-      template <typename State> using HasEntry = typename HasEntryImpl<State>::Result;
+      template <typename State> using HasEntry = Eval<HasEntryImpl<State>>;
       
       template <typename State> struct Enter { void operator()() { typename Machine::template Enter<Kernel, State>()(); } };
       using TargetEntryPath = Reverse<Ancestors<Substates, Target>>;
@@ -82,7 +82,7 @@ namespace CppMeta {
       using Result = decltype(test<Machine>(0));
     };
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
-      using HasGuard = typename HasGuardImpl<Kernel, Machine, State, Event, Target>::Result;
+      using HasGuard = Eval<HasGuardImpl<Kernel, Machine, State, Event, Target>>;
     
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
     struct HasActionImpl {
@@ -92,7 +92,7 @@ namespace CppMeta {
       using Result = decltype(test<Machine>(0));
     };
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
-      using HasAction = typename HasActionImpl<Kernel, Machine, State, Event, Target>::Result;
+      using HasAction = Eval<HasActionImpl<Kernel, Machine, State, Event, Target>>;
     
     template <typename Kernel, typename Machine, typename State, typename Event, typename Target>
       using HasTransition = Or<HasGuard<Kernel, Machine, State, Event, Target>, HasAction<Kernel, Machine, State, Event, Target>>;
@@ -169,11 +169,11 @@ namespace CppMeta {
         template <typename Target> using HasTransitionTo = HasTransition<DummyKernel, Machine, State, Event, Target>;
         using Result = Any<States, HasTransitionTo>;
       };
-      template <typename State> using HasEventTransition = typename HasEventTransitionImpl<State>::Result;
+      template <typename State> using HasEventTransition = Eval<HasEventTransitionImpl<State>>;
       
       using Result = Any<States, HasEventTransition>;
     };
-    template <typename Machine, typename Event> using RespondsTo = typename RespondsToImpl<Machine, Event>::Result;
+    template <typename Machine, typename Event> using RespondsTo = Eval<RespondsToImpl<Machine, Event>>;
   }
 }
 
