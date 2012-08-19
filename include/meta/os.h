@@ -71,8 +71,16 @@ namespace CppMeta {
       
       struct Run {
         template <typename Driver> using Initialise = typename Driver::template Initialise<Kernel>;
+        template <typename Driver>
+        struct HasInitialiseImpl {
+          template <typename U> static Bool<true>  test(typename U::template Initialise<Kernel> *);
+          template <typename>   static Bool<false> test(...);
+          using Result = decltype(test<Driver>(0));
+        };
+        template <typename Driver> using HasInitialise = Eval<HasInitialiseImpl<Driver>>;
+        
         void operator()() {
-          Each<Drivers, Initialise>()();
+          Each<Select<Drivers, HasInitialise>, Initialise>()();
           Scheduler::Initialise<Kernel, Context, Machines>()();
           Context::waitloop();
         }

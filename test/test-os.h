@@ -25,10 +25,15 @@ namespace CppMeta {
       struct Irq1; struct Irq2; struct Irq3;
       bool d1_irq3_called, d2_irq2_called, d2_irq3_called, d3_irq1_called;
       
+      struct D0 {
+        struct DefaultConfiguration { };
+      };
+      
       struct D1 {
         template <typename Kernel, typename Interrupt> struct Handle;
         struct DefaultConfiguration { static constexpr bool defaultflag = true; static constexpr int id = 1; };
         template <typename Kernel> struct Initialise { void operator()() { init(Kernel::template Configuration<D1>::id); } };
+        using Dependencies = List<D0>;
       };
       template <typename Kernel>
       struct D1::Handle<Kernel, Irq3> { void operator()() { d1_irq3_called = true; } };
@@ -98,7 +103,7 @@ namespace CppMeta {
       using Machines = List<M1, M2, M3>;
       using Kernel = OS::Kernel<Context, Machines>;
       
-      static_assert(Same<Kernel::Drivers, List<D1, D3, D2, D4>>::value, "failed");
+      static_assert(Same<Kernel::Drivers, List<D0, D1, D3, D2, D4>>::value, "failed");
       
       static_assert(Same<Kernel::Dependants<D1>, List<D3, D2, M1>>::value, "failed");
       static_assert(Same<Kernel::Dependants<D2>, List<D4>>::value, "failed");
